@@ -1,0 +1,460 @@
+<section class="business-profile">
+  <!-- תאריך ושעה בפינה השמאלית העליונה -->
+  <div class="datetime">
+    {{ formatDateTime(currentTime) }}
+  </div>
+
+  <!-- כותרת ראשית -->
+  <div class="hero">
+    <div class="hero-content">
+      <h1 *ngIf="!error">שלום, הגאתם לעסק {{ businessName }}</h1>
+      <p>
+        ברוכים הבאים! כאן תמצאו את השירותים המובילים שלנו, הכירו את הצוות וקראו
+        מה לקוחות חושבים עלינו.
+      </p>
+    </div>
+    <div class="hero-image">
+      <img
+        [src]="sanitizeUrl(logoUrl || fallbackImage)"
+        alt="תמונת העסק"
+        (error)="logoUrl = fallbackImage"
+      />
+    </div>
+  </div>
+
+  <!-- טבלת עובדים - מוצגת רק לבעל העסק -->
+  <div class="section" *ngIf="!error && isOwner">
+    <div class="employees-header">
+      <h2>הצוות שלנו</h2>
+      <button
+        *ngIf="isOwner"
+        class="add-employee-btn"
+        (click)="openEmployeeModal()"
+      >
+        <span>+</span>
+      </button>
+    </div>
+    <table
+      class="employees-table"
+      *ngIf="employees.length > 0; else noEmployees"
+    >
+      <thead>
+        <tr>
+          <th>שם</th>
+          <th>תפקיד</th>
+          <th>טלפון</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let employee of employees">
+          <td>{{ employee.name }}</td>
+          <td>{{ employee.role }}</td>
+          <td>{{ employee.phone }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noEmployees>
+      <p>אין עובדים רשומים.</p>
+    </ng-template>
+  </div>
+
+  <!-- כרטיסי שירותים -->
+  <div class="section" *ngIf="!error">
+    <div class="services-header">
+      <h2>השירותים שלנו</h2>
+      <button
+        *ngIf="isOwner"
+        class="add-service-btn"
+        (click)="openServiceModal()"
+      >
+        <span>+</span>
+      </button>
+    </div>
+    <div class="services-grid" *ngIf="services.length > 0; else noServices">
+      <div class="service-card" *ngFor="let service of services">
+        <h3>{{ service.name }}</h3>
+        <p>{{ service.description }}</p>
+        <p class="price">₪{{ service.price }}</p>
+        <div class="service-actions">
+          <button
+            *ngIf="!isOwner"
+            class="book-service-btn"
+            (click)="openBookingModal(service)"
+          >
+            הזמן
+          </button>
+          <button
+            *ngIf="isOwner"
+            class="delete-service-btn"
+            (click)="deleteService(service)"
+          >
+            מחק
+          </button>
+        </div>
+      </div>
+    </div>
+    <ng-template #noServices>
+      <p>אין שירותים רשומים.</p>
+    </ng-template>
+  </div>
+
+  <!-- ביקורות לקוחות -->
+  <div class="section" *ngIf="!error">
+    <h2>ביקורות לקוחות</h2>
+    <div class="reviews-grid" *ngIf="reviews.length > 0; else noReviews">
+      <div class="review-card" *ngFor="let review of reviews">
+        <p>{{ review.comment }}</p>
+        <span>
+          {{ review.customer }} - דירוג: {{ "★".repeat(review.rating)
+          }}{{ "☆".repeat(5 - review.rating) }}
+        </span>
+      </div>
+    </div>
+    <ng-template #noReviews>
+      <p>אין ביקורות רשומות.</p>
+    </ng-template>
+  </div>
+
+  <!-- טעינה ושגיאות -->
+  <div *ngIf="error" class="error-msg">{{ error }}</div>
+  <div *ngIf="loading" class="loading">טוען...</div>
+
+  <!-- מודל להוספת שירות -->
+  <div
+    class="modal"
+    [class.active]="showServiceModal"
+    (click)="closeServiceModal()"
+  >
+    <div
+      class="modal-content"
+      [class.active]="showServiceModal"
+      (click)="$event.stopPropagation()"
+    >
+      <h3>הוספת שירות חדש</h3>
+      <div class="form-slide" [class.active]="serviceFormStep === 1">
+        <div class="form-group">
+          <label>שם השירות</label>
+          <input type="text" [(ngModel)]="newService.name" required />
+          <span class="error" *ngIf="!newService.name">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>תיאור</label>
+          <textarea [(ngModel)]="newService.description" required></textarea>
+          <span class="error" *ngIf="!newService.description">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>מחיר (בשקלים)</label>
+          <input
+            type="number"
+            [(ngModel)]="newService.price"
+            min="0"
+            required
+          />
+          <span class="error" *ngIf="!newService.price || newService.price <= 0"
+            >חייב להיות גדול מ-0</span
+          >
+        </div>
+        <div class="form-group">
+          <label>מחיר בהנחה (אופציונלי)</label>
+          <input type="number" [(ngModel)]="newService.discountPrice" min="0" />
+        </div>
+        <div class="form-group">
+          <label>קטגוריה</label>
+          <input type="text" [(ngModel)]="newService.category" required />
+          <span class="error" *ngIf="!newService.category">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>משך (בדקות)</label>
+          <input
+            type="number"
+            [(ngModel)]="newService.duration"
+            min="0"
+            required
+          />
+          <span
+            class="error"
+            *ngIf="!newService.duration || newService.duration <= 0"
+            >חייב להיות גדול מ-0</span
+          >
+        </div>
+        <div class="form-group">
+          <label>זמינות</label>
+          <select [(ngModel)]="newService.availability" required>
+            <option value="available">זמין</option>
+            <option value="unavailable">לא זמין</option>
+            <option value="on_request">בהזמנה</option>
+          </select>
+          <span class="error" *ngIf="!newService.availability">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>תגיות (מופרדות בפסיק)</label>
+          <input
+            type="text"
+            [(ngModel)]="tagsInput"
+            placeholder="לדוגמה: מהיר, פרימיום"
+          />
+        </div>
+        <div class="form-group">
+          <label>כתובת תמונה (אופציונלי)</label>
+          <input type="text" [(ngModel)]="newService.imageUrl" />
+        </div>
+        <div class="form-group">
+          <label>שירות מומלץ?</label>
+          <input type="checkbox" [(ngModel)]="newService.isFeatured" />
+        </div>
+        <div class="form-group">
+          <label>דורש בחירת עובד?</label>
+          <input type="checkbox" [(ngModel)]="newService.requiresEmployee" />
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="nextServiceStep()"
+            [disabled]="!isServiceFormValid()"
+          >
+            {{ newService.requiresEmployee ? "הבא" : "שמור" }}
+          </button>
+          <button class="cancel-btn" (click)="closeServiceModal()">בטל</button>
+        </div>
+      </div>
+      <div class="form-slide" [class.active]="serviceFormStep === 2">
+        <div class="form-group">
+          <label>בחר עובדים</label>
+          <div class="employee-scroll">
+            <div *ngFor="let employee of employees" class="employee-option">
+              <input
+                type="checkbox"
+                [(ngModel)]="employee.selected"
+                [ngModelOptions]="{ standalone: true }"
+              />
+              <span
+                >{{ employee.name }} - {{ employee.role }} ({{
+                  employee.phone
+                }})</span
+              >
+            </div>
+          </div>
+          <span class="error" *ngIf="!hasSelectedEmployees()"
+            >נא לבחור לפחות עובד אחד</span
+          >
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="addNewService()"
+            [disabled]="!isEmployeeFormValid()"
+          >
+            שמור
+          </button>
+          <button class="cancel-btn" (click)="closeServiceModal()">בטל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- מודל להוספת עובד -->
+  <div
+    class="modal"
+    [class.active]="showEmployeeModal"
+    (click)="closeEmployeeModal()"
+  >
+    <div
+      class="modal-content"
+      [class.active]="showEmployeeModal"
+      (click)="$event.stopPropagation()"
+    >
+      <h3>הוספת עובד חדש</h3>
+      <div class="form-slide active">
+        <div class="form-group">
+          <label>שם העובד</label>
+          <input type="text" [(ngModel)]="newEmployee.name" required />
+          <span class="error" *ngIf="!newEmployee.name">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>תפקיד</label>
+          <input type="text" [(ngModel)]="newEmployee.role" required />
+          <span class="error" *ngIf="!newEmployee.role">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>טלפון</label>
+          <input type="text" [(ngModel)]="newEmployee.phone" required />
+          <span class="error" *ngIf="!newEmployee.phone">שדה נדרש</span>
+        </div>
+        <div class="form-group">
+          <label>שירותים (מופרדות בפסיק)</label>
+          <input
+            type="text"
+            [(ngModel)]="newEmployee.services"
+            placeholder="לדוגמה: תספורת, צביעה"
+          />
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="addNewEmployee()"
+            [disabled]="!isNewEmployeeFormValid()"
+          >
+            שמור
+          </button>
+          <button class="cancel-btn" (click)="closeEmployeeModal()">בטל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- מודל להזמנת שירות -->
+  <div
+    class="modal"
+    [class.active]="showBookingModal"
+    (click)="closeBookingModal()"
+  >
+    <div
+      class="modal-content"
+      [class.active]="showBookingModal"
+      (click)="$event.stopPropagation()"
+    >
+      <h3>הזמנת שירות</h3>
+
+      <!-- שלב 1: בחירת עובד (אם נדרש) -->
+      <div class="form-slide" [class.active]="bookingStep === 1">
+        <div class="form-group">
+          <label>שירות נבחר</label>
+          <input type="text" [value]="selectedService?.name" disabled />
+        </div>
+        <div class="form-group" *ngIf="selectedService?.requiresEmployee">
+          <label>בחר עובד</label>
+          <select [(ngModel)]="selectedEmployee">
+            <option [ngValue]="null" disabled>בחר עובד</option>
+            <option
+              *ngFor="
+                let employee of employees
+                  | filterEmployeesByService : selectedService?.id
+              "
+              [ngValue]="employee"
+            >
+              {{ employee.name }} - {{ employee.role }}
+            </option>
+          </select>
+          <span class="error" *ngIf="!selectedEmployee">שדה נדרש</span>
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="nextBookingStep()"
+            [disabled]="selectedService?.requiresEmployee && !selectedEmployee"
+          >
+            הבא
+          </button>
+          <button class="cancel-btn" (click)="closeBookingModal()">בטל</button>
+        </div>
+      </div>
+
+      <!-- שלב 2: בחירת תאריך -->
+      <div class="form-slide" [class.active]="bookingStep === 2">
+        <div class="form-group">
+          <label>שירות נבחר</label>
+          <input type="text" [value]="selectedService?.name" disabled />
+        </div>
+        <div class="form-group">
+          <label>בחר תאריך</label>
+          <div class="calendar-nav">
+            <button (click)="prevMonth()" class="nav-btn">קודם</button>
+            <button (click)="nextMonth()" class="nav-btn">הבא</button>
+          </div>
+          <mwl-calendar-month-view
+            [viewDate]="viewDate"
+            [locale]="locale"
+            [events]="events"
+            (dayClicked)="onDateSelect($event.day.date)"
+            [activeDayIsOpen]="false"
+            [weekendDays]="[5, 6]"
+            (beforeViewRender)="dayModifier($event)"
+          ></mwl-calendar-month-view>
+          <span class="error" *ngIf="!selectedDate">שדה נדרש</span>
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="nextBookingStep()"
+            [disabled]="!selectedDate"
+          >
+            הבא
+          </button>
+          <button class="cancel-btn" (click)="previousBookingStep()">
+            חזור
+          </button>
+          <button class="cancel-btn" (click)="closeBookingModal()">בטל</button>
+        </div>
+      </div>
+
+      <!-- שלב 3: בחירת שעה -->
+      <div class="form-slide" [class.active]="bookingStep === 3">
+        <div class="form-group">
+          <label>שירות נבחר</label>
+          <input type="text" [value]="selectedService?.name" disabled />
+        </div>
+        <div class="form-group">
+          <label>בחר שעה</label>
+          <div class="time-bubbles">
+            <button
+              *ngFor="let time of availableTimes"
+              (click)="selectTime(time)"
+              [class.selected]="selectedTime === time"
+              class="time-bubble"
+            >
+              {{ time }}
+            </button>
+          </div>
+          <span class="error" *ngIf="!selectedTime">שדה נדרש</span>
+        </div>
+        <div class="form-actions">
+          <button
+            class="save-btn"
+            (click)="nextBookingStep()"
+            [disabled]="!selectedTime"
+          >
+            הבא
+          </button>
+          <button class="cancel-btn" (click)="previousBookingStep()">
+            חזור
+          </button>
+          <button class="cancel-btn" (click)="closeBookingModal()">בטל</button>
+        </div>
+      </div>
+
+      <!-- שלב 4: סיכום ואישור -->
+      <div class="form-slide" [class.active]="bookingStep === 4">
+        <div class="form-group">
+          <label>שירות נבחר</label>
+          <input type="text" [value]="selectedService?.name" disabled />
+        </div>
+        <div class="form-group" *ngIf="selectedEmployee">
+          <label>עובד נבחר</label>
+          <input type="text" [value]="selectedEmployee.name" disabled />
+        </div>
+        <div class="form-group">
+          <label>תאריך ושעה</label>
+          <input
+            type="text"
+            [value]="selectedDate | date : 'dd/MM/yyyy' + ' ' + selectedTime"
+            disabled
+          />
+        </div>
+        <div class="form-group">
+          <label>הערות (אופציונלי)</label>
+          <textarea
+            [(ngModel)]="bookingNotes"
+            placeholder="הוסף הערות"
+          ></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="save-btn" (click)="confirmBooking()">אשר הזמנה</button>
+          <button class="cancel-btn" (click)="previousBookingStep()">
+            חזור
+          </button>
+          <button class="cancel-btn" (click)="closeBookingModal()">בטל</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

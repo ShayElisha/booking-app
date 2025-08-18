@@ -1,0 +1,38 @@
+<section class="admin-section">
+  <h2>פאנל ניהול עסקים</h2>
+  <table class="business-table" *ngIf="businesses.length > 0; else noData">
+    <thead>
+      <tr>
+        <th>שם העסק</th>
+        <th>כתובת</th>
+        <th>טלפון</th>
+        <th>תיאור</th>
+        <th>שעות פעילות</th>
+        <th>מזהה חברה</th>
+        <th>לוגו</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let business of businesses">
+        <td>{{ business.businessName }}</td>
+        <td>{{ business.address }}</td>
+        <td>{{ business.phoneNumber }}</td>
+        <td>{{ business.description || "ללא תיאור" }}</td>
+        <td>{{ getOpeningHours(business) }}</td>
+        <td>{{ business.companyId }}</td>
+        <td>
+          <img
+            [src]="business.logoUrl || 'assets/placeholder.png'"
+            alt="לוגו"
+            class="logo"
+          />
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-template #noData>
+    <p class="no-data">אין עסקים זמינים.</p>
+  </ng-template>
+  <div *ngIf="error" class="error-msg">{{ error }}</div>
+  <div *ngIf="loading" class="loading">טוען...</div>
+</section>

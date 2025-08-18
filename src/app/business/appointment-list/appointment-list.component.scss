@@ -1,0 +1,51 @@
+.profile-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-section {
+  margin-bottom: 20px;
+}
+
+.appointment-card,
+.business-card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 5px;
+}
+
+.profile-img {
+  max-width: 150px;
+  border-radius: 50%;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+form div {
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  padding: 8px 16px;
+  margin: 5px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+}
+
+button:hover {
+  opacity: 0.9;
+}

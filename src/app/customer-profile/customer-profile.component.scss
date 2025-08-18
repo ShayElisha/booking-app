@@ -1,0 +1,347 @@
+:host {
+  display: block;
+  direction: rtl;
+}
+
+.profile-container {
+  position: relative;
+  z-index: 1;
+  margin: 3rem auto;
+  padding: 3rem;
+  background: #ffffff;
+  border-radius: 32px;
+  box-shadow: 0 12px 36px rgba(95, 75, 182, 0.12);
+  max-width: 1280px;
+  direction: rtl;
+  font-family: "Assistant", Arial, sans-serif;
+  color: #1a1a3d;
+  overflow: hidden;
+
+  @media (max-width: 900px) {
+    border-radius: 24px;
+    padding: 2rem;
+    margin: 1.5rem 0.75rem;
+  }
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  background: linear-gradient(145deg, #f7f8ff 50%, #e9ecff 100%);
+  border-radius: 40px;
+  margin-bottom: 3rem;
+  padding: 3rem;
+  box-shadow: 0 8px 28px rgba(123, 136, 212, 0.1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle at 10% 20%,
+      rgba(124, 169, 253, 0.2) 0%,
+      transparent 50%
+    );
+    z-index: 0;
+  }
+
+  @media (max-width: 900px) {
+    flex-direction: column-reverse;
+    text-align: center;
+    gap: 2rem;
+    padding: 2rem;
+    border-radius: 28px;
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #2a2a5a;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.03rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 700px) {
+    font-size: 2rem;
+  }
+}
+
+.hero-content p {
+  font-size: 1.2rem;
+  color: #5a5a7a;
+  line-height: 1.8;
+  max-width: 640px;
+  font-weight: 400;
+}
+
+.hero-image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  min-width: 180px;
+  z-index: 1;
+}
+
+.hero-image img {
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 8px solid #ffffff;
+  box-shadow: 0 8px 32px rgba(124, 169, 253, 0.2);
+  transition: transform 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  @media (max-width: 600px) {
+    width: 160px;
+    height: 160px;
+    border-width: 6px;
+  }
+}
+
+.section {
+  margin-bottom: 3.5rem;
+  position: relative;
+}
+
+.section h2 {
+  font-size: 1.8rem;
+  color: #5f4bb6;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    right: 0;
+    width: 50%;
+    height: 3px;
+    background: linear-gradient(to left, #5f4bb6, transparent);
+    border-radius: 3px;
+  }
+}
+
+.user-card {
+  background: #f9faff;
+  border-radius: 24px;
+  padding: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(124, 169, 253, 0.05) 0%,
+      transparent 50%
+    );
+    z-index: 0;
+  }
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 24px rgba(95, 75, 182, 0.2);
+  }
+
+  p {
+    position: relative;
+    z-index: 1;
+    font-size: 1.1rem;
+    color: #4a4a6a;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  p strong {
+    color: #5f4bb6;
+    font-weight: 600;
+  }
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #f9faff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(95, 75, 182, 0.12);
+}
+
+.appointments-table th,
+.appointments-table td {
+  padding: 1.2rem;
+  text-align: right;
+  border-bottom: 1px solid #e8e8f0;
+  transition: background 0.2s ease;
+}
+
+.appointments-table th {
+  background: #f4f4f9;
+  font-weight: 600;
+  color: #2a2a5a;
+  font-size: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.appointments-table tr:hover {
+  background: #f0f2ff;
+  transform: scale(1.01);
+  transition: transform 0.2s ease;
+}
+
+.appointments-table tr:last-child td {
+  border-bottom: none;
+}
+
+.appointments-table th:first-child,
+.appointments-table td:first-child {
+  border-right: 1px solid #e8e8f0;
+  border-top-right-radius: 24px;
+}
+
+.appointments-table th:last-child,
+.appointments-table td:last-child {
+  border-left: 1px solid #e8e8f0;
+  border-top-left-radius: 24px;
+}
+
+.delete-btn {
+  padding: 0.7rem 1.4rem;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 12px rgba(211, 47, 47, 0.3);
+
+  &:hover {
+    background: #b71c1c;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(211, 47, 47, 0.4);
+  }
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.business-card {
+  background: #f9faff;
+  border-radius: 24px;
+  padding: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle,
+      rgba(124, 169, 253, 0.1) 0%,
+      transparent 70%
+    );
+    z-index: 0;
+  }
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 6px 24px rgba(95, 75, 182, 0.2);
+  }
+
+  h3 {
+    position: relative;
+    z-index: 1;
+    font-size: 1.3rem;
+    color: #5f4bb6;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    position: relative;
+    z-index: 1;
+    font-size: 1.1rem;
+    color: #4a4a6a;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  p strong {
+    color: #5f4bb6;
+    font-weight: 600;
+  }
+}
+
+.error-msg {
+  color: #d32f2f;
+  text-align: center;
+  font-size: 1.2rem;
+  margin: 2.5rem 0;
+  font-weight: 500;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #5a5a7a;
+  margin: 2.5rem 0;
+  font-weight: 500;
+  animation: pulse 1.5s infinite;
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}

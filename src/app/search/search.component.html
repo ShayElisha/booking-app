@@ -1,0 +1,51 @@
+<section class="customer-profile">
+  <h1>ברוכים הבאים לפרופיל הלקוח</h1>
+  <p>חפש והכר את העסקים המובילים שלנו</p>
+
+  <!-- מנוע חיפוש -->
+  <div class="search-section">
+    <form [formGroup]="searchForm">
+      <input
+        type="text"
+        formControlName="searchTerm"
+        placeholder="חפש עסק לפי שם, כתובת או תיאור..."
+        class="search-input"
+      />
+    </form>
+  </div>
+
+  <!-- רשימת עסקים בכרטיסיות -->
+  <div class="businesses-grid">
+    <div class="business-card" *ngFor="let business of filteredBusinesses">
+      <h3>{{ business.businessName }}</h3>
+      <p>כתובת: {{ business.address }}</p>
+      <p>טלפון: {{ business.phoneNumber }}</p>
+      <p>תיאור: {{ business.description || "ללא תיאור" }}</p>
+      <div class="hours">
+        <h4>שעות פעילות:</h4>
+        <ul>
+          <li *ngFor="let hour of business.openingHours">
+            {{ hour.day }}: {{ hour.from }} - {{ hour.to }}
+          </li>
+        </ul>
+      </div>
+      <img
+        [src]="business.logoUrl || 'assets/placeholder.png'"
+        alt="לוגו"
+        class="logo"
+      />
+      <button
+        [routerLink]="['/business', business.companyId]"
+        class="business-link-btn"
+      >
+        לעמוד העסק
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="filteredBusinesses.length === 0 && !loading" class="no-results">
+    לא נמצאו עסקים התואמים לחיפוש.
+  </div>
+  <div *ngIf="error" class="error-msg">{{ error }}</div>
+  <div *ngIf="loading" class="loading">טוען...</div>
+</section>

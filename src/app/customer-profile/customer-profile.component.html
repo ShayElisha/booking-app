@@ -1,0 +1,97 @@
+<div class="profile-container">
+  <div class="hero">
+    <div class="hero-content">
+      <h1 *ngIf="userData">{{ greeting }} {{ userData.fullName }}</h1>
+      <h1 *ngIf="!userData">{{ greeting }}</h1>
+      <p>
+        ברוכים הבאים לפרופיל שלכם! כאן תוכלו לנהל את התורים שלכם ולצפות בעסקים
+        המועדפים.
+      </p>
+    </div>
+    <div class="hero-image">
+      <img
+        *ngIf="userData && userData.photoURL"
+        [src]="userData.photoURL"
+        alt="תמונת פרופיל"
+      />
+    </div>
+  </div>
+
+  <section class="section user-section">
+    <h2>פרטי המשתמש</h2>
+    <div *ngIf="isLoadingUser" class="loading">טוען נתונים...</div>
+    <div *ngIf="userError" class="error-msg">{{ userError }}</div>
+    <div *ngIf="userData && !isLoadingUser && !userError" class="user-card">
+      <p><strong>שם מלא:</strong> {{ userData.fullName }}</p>
+      <p><strong>אימייל:</strong> {{ userData.email }}</p>
+      <p>
+        <strong>מספר טלפון:</strong> {{ userData.phoneNumber || "לא צוין" }}
+      </p>
+      <p><strong>תפקיד:</strong> {{ userData.role }}</p>
+      <p>
+        <strong>אישור תנאים:</strong> {{ userData.termsAccepted ? "כן" : "לא" }}
+      </p>
+    </div>
+  </section>
+
+  <section class="section appointments-section">
+    <h2>התורים העתידיים שלי</h2>
+    <div *ngIf="appointments.length; else noAppointments">
+      <table class="appointments-table">
+        <thead>
+          <tr>
+            <th>עסק</th>
+            <th>שירות</th>
+            <th>תאריך</th>
+            <th>שעה</th>
+            <th>משך (דקות)</th>
+            <th>סטטוס</th>
+            <th>עובד</th>
+            <th>מזהה עובד</th>
+            <th>פעולות</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let appointment of appointments">
+            <td>{{ appointment.businessName }}</td>
+            <td>{{ appointment.serviceName }}</td>
+            <td>{{ appointment.date | date : "dd/MM/yyyy" }}</td>
+            <td>{{ appointment.time }}</td>
+            <td>{{ appointment.duration }}</td>
+            <td>{{ appointment.status }}</td>
+            <td>{{ appointment.employeeName || "לא צוין" }}</td>
+            <td>
+              <button
+                class="delete-btn"
+                (click)="deleteAppointment(appointment)"
+                aria-label="מחק תור"
+              >
+                מחק
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noAppointments>
+      <p class="error-msg">אין תורים עתידיים</p>
+    </ng-template>
+  </section>
+
+  <section class="section favorites-section">
+    <h2>העסקים המועדפים שלי</h2>
+    <div
+      *ngIf="favoriteBusinesses.length; else noFavorites"
+      class="favorites-grid"
+    >
+      <div *ngFor="let usage of favoriteBusinesses" class="business-card">
+        <h3>{{ usage.business.businessName }}</h3>
+        <p><strong>כתובת:</strong> {{ usage.business.address }}</p>
+        <p><strong>טלפון:</strong> {{ usage.business.phoneNumber }}</p>
+      </div>
+    </div>
+    <ng-template #noFavorites>
+      <p class="error-msg">אין עסקים מועדפים עדיין</p>
+    </ng-template>
+  </section>
+</div>

@@ -1,0 +1,112 @@
+.header {
+  background: #fff;
+  box-shadow: 0 2px 10px 0 rgba(90, 105, 120, 0.05);
+  border-radius: 0 0 32px 32px;
+  padding: 0.7rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+
+    @media (max-width: 800px) {
+      flex-direction: column;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+    }
+  }
+
+  .logo {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #5f4bb6;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #6d9fff 0%, #5f4bb6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+
+  nav {
+    display: flex;
+    gap: 2rem;
+
+    a {
+      font-size: 1.15rem;
+      font-weight: 500;
+      color: #6b6b85;
+      text-decoration: none;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      transition: background 0.18s ease-in-out, color 0.18s ease-in-out;
+
+      &.active,
+      &:hover {
+        background: #f1f3fb;
+        color: #5f4bb6;
+        font-weight: 600;
+      }
+    }
+
+    @media (max-width: 800px) {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+  }
+
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .greeting {
+      font-size: 1rem;
+      color: #6b6b85;
+      font-weight: 500;
+    }
+
+    .login-btn,
+    .logout-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.18s ease-in-out, color 0.18s ease-in-out;
+    }
+
+    .login-btn {
+      background: #f1f3fb;
+      color: #5f4bb6;
+      &:hover {
+        background: #5f4bb6;
+        color: #fff;
+      }
+    }
+
+    .logout-btn {
+      background: #fff;
+      color: #5f4bb6;
+      border: 1px solid #5f4bb6;
+      &:hover {
+        background: #5f4bb6;
+        color: #fff;
+      }
+    }
+
+    @media (max-width: 800px) {
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 100%;
+      text-align: center;
+    }
+  }
+}

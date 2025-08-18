@@ -1,0 +1,125 @@
+<div class="business-section">
+  <h2 class="business-title">רישום עסק חדש</h2>
+  <form [formGroup]="businessForm" (ngSubmit)="submit()" class="business-form">
+    <div class="form-group">
+      <label class="form-label">שם העסק</label>
+      <input
+        formControlName="businessName"
+        class="form-input"
+        type="text"
+        placeholder="הזן שם עסק"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">כתובת</label>
+      <input
+        formControlName="address"
+        class="form-input"
+        type="text"
+        placeholder="הזן כתובת"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">טלפון</label>
+      <input
+        formControlName="phoneNumber"
+        class="form-input"
+        type="tel"
+        placeholder="הזן מספר טלפון"
+      />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">תיאור</label>
+      <textarea
+        formControlName="description"
+        class="form-textarea"
+        placeholder="תאר את העסק (אופציונלי)"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label form-label-bold">שעות פעילות</label>
+      <div formArrayName="openingHours">
+        <table class="hours-table">
+          <thead>
+            <tr class="table-header">
+              <th class="table-header-cell">יום</th>
+              <th class="table-header-cell">פעיל</th>
+              <th class="table-header-cell">משעה</th>
+              <th class="table-header-cell">עד שעה</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let hour of openingHours.controls; let i = index"
+              [formGroupName]="i"
+              class="table-row"
+            >
+              <td class="table-cell">{{ weekDays[i] }}</td>
+              <td class="table-cell">
+                <input
+                  type="checkbox"
+                  formControlName="isActive"
+                  class="form-checkbox"
+                />
+              </td>
+              <td class="table-cell">
+                <input
+                  type="time"
+                  formControlName="from"
+                  class="form-time"
+                  [disabled]="!openingHours.controls[i].get('isActive')"
+                />
+              </td>
+              <td class="table-cell">
+                <input
+                  type="time"
+                  formControlName="to"
+                  class="form-time"
+                  [disabled]="!openingHours.controls[i].get('isActive')"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">לוגו העסק</label>
+      <input
+        type="file"
+        (change)="onFileSelected($event)"
+        accept="image/*"
+        class="form-input"
+      />
+      <div *ngIf="imagePreview" class="image-preview">
+        <img [src]="imagePreview" alt="Logo Preview" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">מרווח תורים (בדקות)</label>
+      <select formControlName="appointmentInterval" class="form-select">
+        <option
+          *ngFor="let interval of appointmentIntervals"
+          [value]="interval"
+        >
+          {{ interval }} דקות
+        </option>
+      </select>
+    </div>
+
+    <button [disabled]="loading" class="submit-button">הירשם</button>
+  </form>
+
+  <div *ngIf="successMsg" class="success-message">
+    {{ successMsg }}
+  </div>
+  <div *ngIf="errorMsg" class="error-message">
+    {{ errorMsg }}
+  </div>
+</div>

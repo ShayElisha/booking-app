@@ -1,0 +1,39 @@
+<div class="container">
+  <h2>תרשים תורים</h2>
+  <ng-container *ngIf="schedules$ | async as schedules">
+    <div *ngFor="let schedule of schedules" class="date-group">
+      <h3>{{ schedule.date }}</h3>
+      <div class="timeline">
+        <div class="timeline-line"></div>
+        <div
+          *ngFor="let slot of schedule.slots"
+          class="time-slot"
+          [style.--start-time]="getTimePosition(slot.time)"
+        >
+          <span class="slot-time">{{ slot.time }}</span>
+          <div
+            *ngFor="let appt of slot.appointments"
+            class="appointment"
+            [style.--start-offset]="0"
+            [style.--duration]="appt.duration"
+          >
+            <div class="appointment-content">
+              <p>
+                <strong>שעה:</strong> {{ appt.time }} -
+                {{ getEndTime(appt.time, appt.duration) }}
+              </p>
+              <p><strong>שירות:</strong> {{ appt.serviceName }}</p>
+              <p><strong>לקוח:</strong> {{ appt.customerName || "לא צוין" }}</p>
+              <p><strong>עובד:</strong> {{ appt.employeeName || "לא צוין" }}</p>
+              <p><strong>סטטוס:</strong> {{ appt.status }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <footer class="footer">
+    <p>{{ today | date : "yyyy-MM-dd" }}</p>
+    <!-- Use current date -->
+  </footer>
+</div>

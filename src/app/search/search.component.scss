@@ -1,0 +1,143 @@
+.customer-profile {
+  position: relative;
+  z-index: 1;
+  margin: 2.7rem auto;
+  padding: 2.9rem 2.1rem;
+  background: #fff;
+  border-radius: 36px;
+  box-shadow: 0 9px 38px 0 #5f4bb617;
+  max-width: 1150px;
+  direction: rtl;
+  font-family: "Assistant", Arial, sans-serif;
+  color: #21244e;
+
+  @media (max-width: 900px) {
+    border-radius: 18px;
+    padding: 1.4rem 0.7rem;
+    margin: 1.3rem 0.6rem;
+  }
+
+  h1 {
+    font-size: 2.6rem;
+    font-weight: 900;
+    color: #383a83;
+    margin-bottom: 0.7em;
+    text-align: center;
+  }
+
+  p {
+    font-size: 1.15rem;
+    color: #52537a;
+    line-height: 1.66;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.search-section {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+
+  .search-input {
+    width: 100%;
+    max-width: 600px;
+    padding: 0.8rem 1.2rem;
+    font-size: 1.1rem;
+    border: 1.5px solid #c7c9ef;
+    border-radius: 36px;
+    background: #f5f7fd;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      border-color: #5f4bb6;
+      box-shadow: 0 0 0 3px #6d9fff33;
+    }
+  }
+}
+
+.businesses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+  gap: 1.8rem;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+  }
+}
+
+.business-card {
+  background: #f5f7fd;
+  border-radius: 16px;
+  box-shadow: 0 1px 6px #6d9fff14;
+  padding: 1.14rem;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+
+  h3 {
+    font-size: 1.13rem;
+    color: #5f4bb6;
+    margin-bottom: 0.7rem;
+  }
+
+  p {
+    font-size: 1.02rem;
+    color: #40405f;
+    margin: 0.5rem 0;
+    text-align: right;
+  }
+
+  .hours {
+    margin: 0.5rem 0;
+
+    h4 {
+      font-size: 1rem;
+      color: #5f4bb6;
+      margin-bottom: 0.5rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        font-size: 0.95rem;
+        color: #52537a;
+        margin-bottom: 0.3rem;
+      }
+    }
+  }
+
+  .logo {
+    max-width: 80px;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+  }
+}
+
+.no-results {
+  text-align: center;
+  font-size: 1.15rem;
+  color: #52537a;
+  margin-top: 2rem;
+}
+
+.error-msg {
+  color: #d32f2f;
+  text-align: center;
+  font-size: 1.15rem;
+  margin-top: 2rem;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1.15rem;
+  color: #52537a;
+  margin-top: 2rem;
+}
