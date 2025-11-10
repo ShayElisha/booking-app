@@ -21,9 +21,11 @@ import { ToastrService } from 'ngx-toastr';
 import { ServicesService } from '../../services/service.service';
 import { EmployeeService } from '../../services/employee.service';
 import { AppointmentService } from '../../services/appointment.service';
+import { EmployeeAbsenceService } from '../../services/employee-absence.service';
 import { Service } from '../../models/service';
 import { Employee } from '../../models/employee';
 import { Appointment } from '../../models/appointment';
+import { EmployeeAbsence } from '../../models/employee-absence';
 import { AppBusiness, BusinessOpeningHour } from '../../models/app-business';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -59,6 +61,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   employees: Employee[] = [];
   services: Service[] = [];
   reviews: Review[] = [];
+  absences: EmployeeAbsence[] = [];
   availableTimes: string[] = [];
   loading = false;
   error = '';
@@ -67,6 +70,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   showBookingModal = false;
   showEmployeeModal = false;
   showDescriptionModal = false;
+  showAbsenceModal = false;
   bookingStep = 1;
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
@@ -95,6 +99,18 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     phone: '',
     companyId: '',
     services: [],
+  };
+  newAbsence: EmployeeAbsence = {
+    employeeId: '',
+    employeeName: '',
+    companyId: '',
+    startDate: '',
+    endDate: '',
+    type: 'vacation',
+    status: 'pending',
+    reason: '',
+    notes: '',
+    createdAt: '',
   };
   tagsInput = '';
   selectedService: Service | null = null;
@@ -133,6 +149,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     private servicesService: ServicesService,
     private employeeService: EmployeeService,
     private appointmentService: AppointmentService,
+    private absenceService: EmployeeAbsenceService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
   ) {}
@@ -210,6 +227,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
             this.loadEmployees(this.companyId!),
             this.loadServices(this.companyId!),
             this.loadReviews(this.companyId!),
+            this.loadAbsences(this.companyId!),
           ]);
         }
       } catch (err) {
@@ -646,12 +664,43 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
           appointment.date
         )
       );
-      const isTimeTaken = existingAppointments?.some(
-        (appt) =>
-          appt.time === appointment.time &&
-          (!this.selectedService?.requiresEmployee ||
-            appt.employeeId === appointment.employeeId)
-      );
+      
+      let isTimeTaken = false;
+      
+      // אם השירות דורש עובד ספציפי
+      if (this.selectedService?.requiresEmployee && appointment.employeeId) {
+        // בדוק אם העובד הספציפי תפוס
+        isTimeTaken = existingAppointments?.some(
+          (appt) =>
+            appt.time === appointment.time &&
+            appt.employeeId === appointment.employeeId
+        ) || false;
+        
+        console.log(`🔍 Employee-specific check: Employee ${appointment.employeeName} at ${appointment.time} - Taken: ${isTimeTaken}`);
+      }
+      // אם השירות לא דורש עובד ספציפי
+      else if (!this.selectedService?.requiresEmployee) {
+        // בדוק אם כל העובדים תפוסים
+        const busyEmployeesAtTime = existingAppointments?.filter(
+          (appt) => appt.time === appointment.time
+        ) || [];
+        const totalEmployees = this.employees.length;
+        isTimeTaken = busyEmployeesAtTime.length >= totalEmployees && totalEmployees > 0;
+        
+        console.log(`🔍 All employees check: ${busyEmployeesAtTime.length}/${totalEmployees} busy at ${appointment.time} - Taken: ${isTimeTaken}`);
+        
+        // אם לא כל העובדים תפוסים, שבץ לעובד זמין
+        if (!isTimeTaken && busyEmployeesAtTime.length < totalEmployees) {
+          const busyEmployeeIds = busyEmployeesAtTime.map(a => a.employeeId);
+          const availableEmployee = this.employees.find(e => !busyEmployeeIds.includes(e.id));
+          
+          if (availableEmployee) {
+            appointment.employeeId = availableEmployee.id;
+            appointment.employeeName = availableEmployee.name;
+            console.log(`✅ Auto-assigned to available employee: ${availableEmployee.name}`);
+          }
+        }
+      }
 
       if (isTimeTaken) {
         this.toastr.error('שעה זו כבר תפוסה.');
@@ -701,6 +750,24 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       'שישי',
       'שבת',
     ][date.getDay()];
+    
+    const dateStr = this.formatDateForStorage(date);
+    
+    // 🔥 בדיקה חדשה: האם העובד בחופש?
+    if (this.selectedEmployee) {
+      const isAbsent = this.absenceService.isEmployeeAbsent(
+        this.absences,
+        this.selectedEmployee.id!,
+        dateStr
+      );
+      
+      if (isAbsent) {
+        console.log(`🏖️ Employee ${this.selectedEmployee.name} is on vacation on ${dateStr}`);
+        this.toastr.warning(`${this.selectedEmployee.name} בחופש בתאריך זה`);
+        this.cdr.markForCheck();
+        return; // אין שעות זמינות
+      }
+    }
     
     let hours;
     
@@ -754,29 +821,38 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
         next: (appointments) => {
           console.log('📅 All appointments for date:', appointments);
           console.log('👤 Selected employee:', this.selectedEmployee);
+          console.log('🎯 Selected service requires employee:', this.selectedService?.requiresEmployee);
           
           // סינון תורים - תמיד לפי העובד הנבחר
           const selectedEmployeeId = this.selectedEmployee?.id;
           const selectedEmployeeName = this.selectedEmployee?.name || 'Unknown';
           
           this.availableTimes = this.availableTimes.filter((time) => {
-            // אם יש עובד נבחר, בדוק רק תורים של אותו עובד
-            if (selectedEmployeeId) {
+            // אם השירות דורש עובד ספציפי
+            if (this.selectedService?.requiresEmployee && selectedEmployeeId) {
               const isEmployeeBusy = appointments.some(
                 (appt) => 
                   appt.time === time && 
                   appt.employeeId === selectedEmployeeId
               );
               
-              console.log(`⏰ Time ${time} - Employee ${selectedEmployeeName} - Busy: ${isEmployeeBusy}`);
+              console.log(`⏰ Time ${time} - Employee ${selectedEmployeeName} (ID: ${selectedEmployeeId}) - Busy: ${isEmployeeBusy}`);
               return !isEmployeeBusy;
             }
             
-            // אם אין עובד נבחר, בדוק אם השעה תפוסה בכלל
-            // (למקרה של שירות שלא דורש עובד ספציפי)
-            const isTimeBusy = appointments.some((appt) => appt.time === time);
-            console.log(`⏰ Time ${time} - Any employee - Busy: ${isTimeBusy}`);
-            return !isTimeBusy;
+            // אם השירות לא דורש עובד ספציפי
+            // בדוק אם כל העובדים תפוסים באותה שעה
+            if (!this.selectedService?.requiresEmployee) {
+              const busyEmployees = appointments.filter((appt) => appt.time === time);
+              const totalEmployees = this.employees.length;
+              const allEmployeesBusy = busyEmployees.length >= totalEmployees && totalEmployees > 0;
+              
+              console.log(`⏰ Time ${time} - All employees check - Busy: ${busyEmployees.length}/${totalEmployees} - Available: ${!allEmployeesBusy}`);
+              return !allEmployeesBusy;
+            }
+            
+            // ברירת מחדל - השעה זמינה
+            return true;
           });
           
           console.log('✅ Available times after filtering:', this.availableTimes);
@@ -1163,5 +1239,180 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       };
       reader.readAsDataURL(this.selectedEmployeeFile);
     }
+  }
+
+  // ========================================
+  // Absence Management Methods
+  // ========================================
+
+  async loadAbsences(companyId: string) {
+    try {
+      console.log(`🏖️ Loading absences for companyId: ${companyId}`);
+      this.absences = await this.absenceService.getAllAbsences(companyId);
+      console.log('✅ Absences loaded:', this.absences);
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error('Error loading absences:', err);
+      this.toastr.error('שגיאה בטעינת חופשות.');
+    }
+  }
+
+  openAbsenceModal(employee?: Employee) {
+    console.log('🏖️ openAbsenceModal called!');
+    console.log('   isOwner:', this.isOwner);
+    console.log('   employee:', employee);
+    
+    if (!this.isOwner) {
+      console.log('❌ User is not owner - modal blocked');
+      this.toastr.error('רק בעל העסק יכול לנהל חופשות');
+      return;
+    }
+    
+    // Reset form
+    this.newAbsence = {
+      employeeId: employee?.id || '',
+      employeeName: employee?.name || '',
+      companyId: this.companyId!,
+      startDate: '',
+      endDate: '',
+      type: 'vacation',
+      status: 'pending',
+      reason: '',
+      notes: '',
+      createdAt: '',
+    };
+    
+    console.log('✅ Opening absence modal');
+    console.log('   newAbsence:', this.newAbsence);
+    
+    this.showAbsenceModal = true;
+    document.body.classList.add('modal-open');
+    
+    // Force change detection
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 0);
+    
+    console.log('   showAbsenceModal:', this.showAbsenceModal);
+  }
+
+  closeAbsenceModal() {
+    this.showAbsenceModal = false;
+    document.body.classList.remove('modal-open');
+    this.cdr.markForCheck();
+  }
+
+  async addAbsence() {
+    if (!this.newAbsence.startDate || !this.newAbsence.endDate) {
+      this.toastr.error('נא למלא תאריכי התחלה וסיום');
+      return;
+    }
+
+    if (this.newAbsence.startDate > this.newAbsence.endDate) {
+      this.toastr.error('תאריך ההתחלה חייב להיות לפני תאריך הסיום');
+      return;
+    }
+
+    try {
+      await this.absenceService.addAbsence(this.companyId!, this.newAbsence);
+      this.toastr.success('חופשה נוספה בהצלחה!');
+      await this.loadAbsences(this.companyId!);
+      this.closeAbsenceModal();
+    } catch (err) {
+      console.error('Error adding absence:', err);
+      this.toastr.error('שגיאה בהוספת חופשה: ' + (err as Error).message);
+    }
+  }
+
+  async approveAbsence(absence: EmployeeAbsence) {
+    if (!absence.id) {
+      this.toastr.error('שגיאה: חסר מזהה חופשה');
+      return;
+    }
+
+    try {
+      await this.absenceService.updateAbsenceStatus(
+        this.companyId!,
+        absence.id,
+        'approved',
+        this.auth.currentUser?.uid || ''
+      );
+      this.toastr.success('בקשת החופש אושרה!');
+      await this.loadAbsences(this.companyId!);
+    } catch (err) {
+      console.error('Error approving absence:', err);
+      this.toastr.error('שגיאה באישור בקשה: ' + (err as Error).message);
+    }
+  }
+
+  async rejectAbsence(absence: EmployeeAbsence) {
+    if (!absence.id) {
+      this.toastr.error('שגיאה: חסר מזהה חופשה');
+      return;
+    }
+
+    try {
+      await this.absenceService.updateAbsenceStatus(
+        this.companyId!,
+        absence.id,
+        'rejected',
+        this.auth.currentUser?.uid || ''
+      );
+      this.toastr.success('בקשת החופש נדחתה');
+      await this.loadAbsences(this.companyId!);
+    } catch (err) {
+      console.error('Error rejecting absence:', err);
+      this.toastr.error('שגיאה בדחיית בקשה: ' + (err as Error).message);
+    }
+  }
+
+  async deleteAbsence(absenceId: string) {
+    if (!confirm('האם אתה בטוח שברצונך למחוק חופשה זו?')) {
+      return;
+    }
+
+    try {
+      await this.absenceService.deleteAbsence(this.companyId!, absenceId);
+      this.toastr.success('החופשה נמחקה בהצלחה');
+      await this.loadAbsences(this.companyId!);
+    } catch (err) {
+      console.error('Error deleting absence:', err);
+      this.toastr.error('שגיאה במחיקת חופשה: ' + (err as Error).message);
+    }
+  }
+
+  getEmployeeAbsences(employeeId: string): EmployeeAbsence[] {
+    return this.absences.filter((absence) => absence.employeeId === employeeId);
+  }
+
+  getEmployeeAbsencesCount(employeeId: string | undefined): number {
+    if (!employeeId) return 0;
+    return this.absences.filter(
+      (absence) =>
+        absence.employeeId === employeeId && absence.status === 'approved'
+    ).length;
+  }
+
+  getPendingAbsences(): EmployeeAbsence[] {
+    return this.absences.filter((absence) => absence.status === 'pending');
+  }
+
+  getAbsenceTypeText(type: string): string {
+    const types: { [key: string]: string } = {
+      vacation: 'חופשה',
+      sick: 'מחלה',
+      personal: 'אישי',
+      other: 'אחר',
+    };
+    return types[type] || type;
+  }
+
+  getAbsenceStatusText(status: string): string {
+    const statuses: { [key: string]: string } = {
+      pending: 'ממתין לאישור',
+      approved: 'מאושר',
+      rejected: 'נדחה',
+    };
+    return statuses[status] || status;
   }
 }

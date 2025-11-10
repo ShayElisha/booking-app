@@ -55,6 +55,7 @@
           <th>שם</th>
           <th>תפקיד</th>
           <th>טלפון</th>
+          <th>חופשות</th>
           <th>פעולות</th>
         </tr>
       </thead>
@@ -63,6 +64,15 @@
           <td>{{ employee.name }}</td>
           <td>{{ employee.role }}</td>
           <td>{{ employee.phone }}</td>
+          <td>
+            <button 
+              class="absence-btn" 
+              (click)="openAbsenceModal(employee)"
+              title="נהל חופשות"
+            >
+              🏖️ {{ getEmployeeAbsencesCount(employee.id) }}
+            </button>
+          </td>
           <td>
             <div class="table-actions">
               <button class="edit-btn-small" (click)="editEmployee(employee)" title="ערוך">
@@ -587,6 +597,124 @@
         >
           💾 שמור תיאור
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- מודל ניהול חופשות -->
+  <div
+    class="modal active"
+    *ngIf="showAbsenceModal"
+    (click)="closeAbsenceModal()"
+  >
+    <div class="modal-content absence-modal" (click)="$event.stopPropagation()">
+      <button class="close-modal-btn" (click)="closeAbsenceModal()">×</button>
+      
+      <h3>🏖️ ניהול חופשות - {{ newAbsence.employeeName }}</h3>
+      
+      <div class="form-group">
+        <label>סוג היעדרות</label>
+        <select [(ngModel)]="newAbsence.type">
+          <option value="vacation">חופשה</option>
+          <option value="sick">מחלה</option>
+          <option value="personal">אישי</option>
+          <option value="other">אחר</option>
+        </select>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>תאריך התחלה</label>
+          <input type="date" [(ngModel)]="newAbsence.startDate" />
+        </div>
+        
+        <div class="form-group">
+          <label>תאריך סיום</label>
+          <input type="date" [(ngModel)]="newAbsence.endDate" />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>הערות</label>
+        <textarea [(ngModel)]="newAbsence.notes" placeholder="הערות נוספות..."></textarea>
+      </div>
+      
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="closeAbsenceModal()">ביטול</button>
+        <button class="save-btn" (click)="addAbsence()">💾 שמור חופשה</button>
+      </div>
+      
+      <!-- רשימת חופשות קיימות -->
+      <div class="absences-list" *ngIf="getEmployeeAbsences(newAbsence.employeeId).length > 0">
+        <h4>חופשות קיימות:</h4>
+        <div class="absence-card" *ngFor="let absence of getEmployeeAbsences(newAbsence.employeeId)">
+          <div class="absence-header">
+            <div class="absence-dates">
+              📅 {{ absence.startDate }} - {{ absence.endDate }}
+            </div>
+            <div class="absence-type">
+              <span [class]="'badge-' + absence.type">{{ getAbsenceTypeText(absence.type) }}</span>
+            </div>
+          </div>
+          
+          <div class="absence-body">
+            <div class="absence-status">
+              <span [class]="'status-badge status-' + absence.status">
+                {{ getAbsenceStatusText(absence.status) }}
+              </span>
+            </div>
+            
+            <div class="absence-notes" *ngIf="absence.notes">
+              💬 {{ absence.notes }}
+            </div>
+          </div>
+          
+          <div class="absence-actions">
+            <button 
+              *ngIf="absence.status === 'pending'" 
+              class="approve-btn-small" 
+              (click)="approveAbsence(absence)"
+              title="אשר"
+            >
+              ✅
+            </button>
+            <button 
+              *ngIf="absence.status === 'pending'" 
+              class="reject-btn-small" 
+              (click)="rejectAbsence(absence)"
+              title="דחה"
+            >
+              ❌
+            </button>
+            <button 
+              class="delete-btn-small" 
+              (click)="deleteAbsence(absence.id!)"
+              title="מחק"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- בקשות ממתינות לאישור -->
+      <div class="pending-absences" *ngIf="getPendingAbsences().length > 0">
+        <h4>⏳ בקשות ממתינות לאישור:</h4>
+        <div class="pending-card" *ngFor="let absence of getPendingAbsences()">
+          <div class="pending-info">
+            <strong>{{ absence.employeeName }}</strong>
+            <span>{{ absence.startDate }} - {{ absence.endDate }}</span>
+            <span class="type-badge">{{ getAbsenceTypeText(absence.type) }}</span>
+          </div>
+          <div class="pending-actions">
+            <button class="approve-btn" (click)="approveAbsence(absence)">
+              ✅ אשר
+            </button>
+            <button class="reject-btn" (click)="rejectAbsence(absence)">
+              ❌ דחה
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

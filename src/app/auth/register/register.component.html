@@ -1,118 +1,136 @@
-<section class="auth-section">
-  <div class="auth-card">
-    <h2>הרשמה</h2>
+<div class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo/Icon -->
+      <div class="auth-icon">
+        <div class="icon-circle">✨</div>
+      </div>
 
-    <form [formGroup]="form" (ngSubmit)="register()" autocomplete="off">
-      <div class="form-group">
-        <label>שם מלא</label>
-        <input type="text" formControlName="fullName" />
-        <div
-          class="form-error"
-          *ngIf="
-            form.controls['fullName'].touched &&
-            form.controls['fullName'].invalid
-          "
-        >
-          <span *ngIf="form.controls['fullName'].errors?.['required']"
-            >שדה חובה</span
-          >
-          <span *ngIf="form.controls['fullName'].errors?.['minlength']"
-            >לפחות 2 תווים</span
-          >
+      <!-- Title -->
+      <h2>הרשמה</h2>
+      <p class="subtitle">הצטרף אלינו והתחל לנהל תורים בקלות</p>
+
+      <!-- Register Form -->
+      <form [formGroup]="form" (ngSubmit)="register()" autocomplete="off">
+        <div class="form-group">
+          <label>👤 שם מלא</label>
+          <input
+            type="text"
+            formControlName="fullName"
+            class="input"
+            [class.input-error]="form.controls['fullName'].touched && form.controls['fullName'].invalid"
+            placeholder="שם פרטי ומשפחה"
+          />
+          <span class="error-text" *ngIf="form.controls['fullName'].touched && form.controls['fullName'].invalid">
+            <span *ngIf="form.controls['fullName'].errors?.['required']">שדה חובה</span>
+            <span *ngIf="form.controls['fullName'].errors?.['minlength']">לפחות 2 תווים</span>
+          </span>
         </div>
-      </div>
-      <div class="form-group">
-        <label>אימייל</label>
-        <input type="email" formControlName="email" />
-        <div
-          class="form-error"
-          *ngIf="
-            form.controls['email'].touched && form.controls['email'].invalid
-          "
-        >
-          <span *ngIf="form.controls['email'].errors?.['required']"
-            >שדה חובה</span
-          >
-          <span *ngIf="form.controls['email'].errors?.['email']"
-            >אימייל לא חוקי</span
-          >
+
+        <div class="form-group">
+          <label>📧 אימייל</label>
+          <input
+            type="email"
+            formControlName="email"
+            class="input"
+            [class.input-error]="form.controls['email'].touched && form.controls['email'].invalid"
+            placeholder="example@email.com"
+          />
+          <span class="error-text" *ngIf="form.controls['email'].touched && form.controls['email'].invalid">
+            <span *ngIf="form.controls['email'].errors?.['required']">שדה חובה</span>
+            <span *ngIf="form.controls['email'].errors?.['email']">אימייל לא תקין</span>
+          </span>
         </div>
-      </div>
-      <div class="form-group">
-        <label>סיסמה</label>
-        <input type="password" formControlName="password" />
-        <div
-          class="form-error"
-          *ngIf="
-            form.controls['password'].touched &&
-            form.controls['password'].invalid
-          "
-        >
-          <span *ngIf="form.controls['password'].errors?.['required']"
-            >שדה חובה</span
+
+        <div class="form-group">
+          <label>🔑 סיסמה</label>
+          <div class="password-wrapper">
+            <input
+              formControlName="password"
+              [type]="showPassword ? 'text' : 'password'"
+              class="input"
+              [class.input-error]="form.controls['password'].touched && form.controls['password'].invalid"
+              placeholder="לפחות 6 תווים"
+            />
+            <button 
+              type="button" 
+              class="toggle-password" 
+              (click)="showPassword = !showPassword"
+            >
+              {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+            </button>
+          </div>
+          <span class="error-text" *ngIf="form.controls['password'].touched && form.controls['password'].invalid">
+            <span *ngIf="form.controls['password'].errors?.['required']">שדה חובה</span>
+            <span *ngIf="form.controls['password'].errors?.['minlength']">לפחות 6 תווים</span>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>📱 טלפון (אופציונלי)</label>
+          <input
+            type="tel"
+            formControlName="phoneNumber"
+            class="input"
+            [class.input-error]="form.controls['phoneNumber'].touched && form.controls['phoneNumber'].invalid"
+            placeholder="050-1234567"
+          />
+          <span class="error-text" *ngIf="form.controls['phoneNumber'].touched && form.controls['phoneNumber'].invalid">
+            <span *ngIf="form.controls['phoneNumber'].errors?.['pattern']">מספר לא תקין (050XXXXXXXX)</span>
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>👔 הרשמה כ:</label>
+          <select 
+            formControlName="role"
+            class="input select-input"
+            [class.input-error]="form.controls['role'].touched && form.controls['role'].invalid"
           >
-          <span *ngIf="form.controls['password'].errors?.['minlength']"
-            >לפחות 6 תווים</span
-          >
+            <option value="" disabled>בחר סוג משתמש</option>
+            <option value="customer">👤 לקוח</option>
+            <option value="business">🏢 בעל עסק</option>
+          </select>
+          <span class="error-text" *ngIf="form.controls['role'].touched && form.controls['role'].invalid">
+            חובה לבחור סוג משתמש
+          </span>
         </div>
-      </div>
-      <div class="form-group">
-        <label>טלפון (אופציונלי)</label>
-        <input
-          type="tel"
-          formControlName="phoneNumber"
-          placeholder="05XXXXXXXX"
-        />
-        <div
-          class="form-error"
-          *ngIf="
-            form.controls['phoneNumber'].touched &&
-            form.controls['phoneNumber'].invalid
-          "
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="termsAccepted" />
+            <span>
+              אני מאשר/ת את <a href="/terms" target="_blank" class="terms-link">תנאי השימוש</a>
+            </span>
+          </label>
+          <span class="error-text" *ngIf="form.controls['termsAccepted'].touched && form.controls['termsAccepted'].invalid">
+            חובה לאשר תנאי שימוש
+          </span>
+        </div>
+
+        <!-- Hidden secret key field -->
+        <input type="hidden" formControlName="secretKey" id="secretKey" />
+
+        <button 
+          class="btn btn-primary" 
+          [disabled]="loading || form.invalid"
+          type="submit"
         >
-          <span *ngIf="form.controls['phoneNumber'].errors?.['pattern']"
-            >מספר לא תקין</span
-          >
-        </div>
+          <span *ngIf="loading" class="loader"></span>
+          <span *ngIf="!loading">🚀 הרשם</span>
+        </button>
+      </form>
+
+      <!-- Login Link -->
+      <div class="register-link">
+        <span>כבר יש לך חשבון?</span>
+        <a routerLink="/login" class="link">התחבר עכשיו</a>
       </div>
-      <div class="form-group">
-        <label>הרשמה כ:</label>
-        <select formControlName="role">
-          <option value="" disabled>בחר סוג משתמש</option>
-          <option value="customer">לקוח</option>
-          <option value="business">עסק</option>
-        </select>
-        <div
-          class="form-error"
-          *ngIf="form.controls['role'].touched && form.controls['role'].invalid"
-        >
-          חובה לבחור סוג משתמש
-        </div>
+
+      <!-- Error Message -->
+      <div *ngIf="error" class="error-message">
+        ⚠️ {{ error }}
       </div>
-      <div class="form-group terms">
-        <label>
-          <input type="checkbox" formControlName="termsAccepted" />
-          אני מאשר/ת את <a href="/terms" target="_blank">תנאי השימוש</a>
-        </label>
-        <div
-          class="form-error"
-          *ngIf="
-            form.controls['termsAccepted'].touched &&
-            form.controls['termsAccepted'].invalid
-          "
-        >
-          חובה לאשר תנאי שימוש
-        </div>
-      </div>
-      <!-- Hidden secret key field, not visible in UI -->
-      <input type="hidden" formControlName="secretKey" id="secretKey" />
-      <button class="btn btn-primary" [disabled]="loading || form.invalid">
-        {{ loading ? "טוען..." : "הרשם" }}
-      </button>
-      <div *ngIf="error" class="error-msg">{{ error }}</div>
-      <div class="switch-link">
-        כבר יש לך חשבון? <a routerLink="/login">להתחברות</a>
-      </div>
-    </form>
+    </div>
   </div>
-</section>
+</div>

@@ -16,6 +16,7 @@ import { UserService } from '../../services/user.service';
 export class RegisterComponent {
   loading = false;
   error = '';
+  showPassword = false;
 
   form = this.fb.group({
     fullName: ['', [Validators.required, Validators.minLength(2)]],

@@ -75,7 +75,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.navLinks = [
         { path: '/', label: 'דף הבית', icon: '' },
         { path: '/search', label: 'חיפוש עסקים', icon: '' },
-        { path: '/register-business', label: 'רישום עסק', icon: '' },
       ];
     } else if (this.userRole === 'customer') {
       // Customer links - ללא דף הבית

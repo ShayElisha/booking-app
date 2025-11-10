@@ -1167,3 +1167,301 @@
     transform: scale(1.05);
   }
 }
+
+// ========================================
+// Absence Management Styles
+// ========================================
+
+.absence-btn {
+  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 216, 155, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 216, 155, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.absence-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 2rem;
+
+  h3 {
+    color: #19547b;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+  }
+
+  h4 {
+    color: #667eea;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.absences-list {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.absence-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateX(-5px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  }
+}
+
+.absence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.absence-dates {
+  font-weight: 600;
+  color: #1a1a3d;
+  font-size: 1rem;
+}
+
+.absence-type {
+  .badge-vacation {
+    background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .badge-sick {
+    background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .badge-personal {
+    background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .badge-other {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}
+
+.absence-body {
+  margin-bottom: 1rem;
+}
+
+.absence-status {
+  margin-bottom: 0.5rem;
+
+  .status-badge {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+
+    &.status-pending {
+      background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+      color: #2d3436;
+    }
+
+    &.status-approved {
+      background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+      color: white;
+    }
+
+    &.status-rejected {
+      background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
+      color: white;
+    }
+  }
+}
+
+.absence-notes {
+  color: #636e72;
+  font-style: italic;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.absence-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.approve-btn-small,
+.reject-btn-small {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.3rem;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+
+  &:active {
+    transform: scale(1);
+  }
+}
+
+.approve-btn-small:hover {
+  background: rgba(85, 239, 196, 0.2);
+}
+
+.reject-btn-small:hover {
+  background: rgba(255, 118, 117, 0.2);
+}
+
+.pending-absences {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.pending-card {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fff5e1 100%);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border-right: 4px solid #fdcb6e;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.pending-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  strong {
+    color: #1a1a3d;
+    font-size: 1.1rem;
+  }
+
+  span {
+    color: #636e72;
+    font-size: 0.9rem;
+  }
+
+  .type-badge {
+    background: white;
+    color: #2d3436;
+    padding: 0.2rem 0.6rem;
+    border-radius: 15px;
+    font-weight: 600;
+    display: inline-block;
+    width: fit-content;
+  }
+}
+
+.pending-actions {
+  display: flex;
+  gap: 0.5rem;
+
+  @media (max-width: 600px) {
+    width: 100%;
+
+    button {
+      flex: 1;
+    }
+  }
+}
+
+.approve-btn,
+.reject-btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.approve-btn {
+  background: linear-gradient(135deg, #55efc4 0%, #00b894 100%);
+  color: white;
+}
+
+.reject-btn {
+  background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
+  color: white;
+}

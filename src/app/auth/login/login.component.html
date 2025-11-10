@@ -1,46 +1,111 @@
-<div class="login-container">
-  <div class="login-card">
-    <h2>התחברות</h2>
-    <form [formGroup]="form" (ngSubmit)="login()" autocomplete="off">
+<div class="auth-page">
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo/Icon -->
+      <div class="auth-icon">
+        <div class="icon-circle">🔐</div>
+      </div>
+
+      <!-- Title -->
+      <h2>התחברות</h2>
+      <p class="subtitle">ברוך הבא! התחבר כדי להמשיך</p>
+
+      <!-- Login Form -->
+      <form [formGroup]="form" (ngSubmit)="login()" autocomplete="off">
+        <div class="form-group">
+          <label>📧 אימייל</label>
+          <input
+            formControlName="email"
+            type="email"
+            class="input"
+            [class.input-error]="form.controls['email'].invalid && form.controls['email'].touched"
+            placeholder="example@email.com"
+          />
+          <span class="error-text" *ngIf="form.controls['email'].invalid && form.controls['email'].touched">
+            נא להזין אימייל תקין
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>🔑 סיסמה</label>
+          <div class="password-wrapper">
+            <input
+              formControlName="password"
+              [type]="showPassword ? 'text' : 'password'"
+              class="input"
+              [class.input-error]="form.controls['password'].invalid && form.controls['password'].touched"
+              placeholder="********"
+            />
+            <button 
+              type="button" 
+              class="toggle-password" 
+              (click)="showPassword = !showPassword"
+            >
+              {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+            </button>
+          </div>
+          <span class="error-text" *ngIf="form.controls['password'].invalid && form.controls['password'].touched">
+            נא להזין סיסמה
+          </span>
+        </div>
+
+        <!-- Forgot Password Link -->
+        <div class="forgot-password">
+          <a (click)="openForgotPassword()" class="link">שכחת סיסמה?</a>
+        </div>
+
+        <button
+          class="btn btn-primary"
+          [disabled]="loading || form.invalid"
+          type="submit"
+        >
+          <span *ngIf="loading" class="loader"></span>
+          <span *ngIf="!loading">🚀 התחבר</span>
+        </button>
+      </form>
+
+      <!-- Register Link -->
+      <div class="register-link">
+        <span>אין לך חשבון?</span>
+        <a routerLink="/register" class="link">הירשם עכשיו</a>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="error" class="error-message">
+        ⚠️ {{ error }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal" [class.active]="showForgotPasswordModal" (click)="closeForgotPassword()">
+    <div class="modal-content" [class.active]="showForgotPasswordModal" (click)="$event.stopPropagation()">
+      <button class="close-modal-btn" (click)="closeForgotPassword()">✕</button>
+      
+      <h3>🔑 איפוס סיסמה</h3>
+      <p class="modal-subtitle">נשלח לך קישור לאיפוס סיסמה למייל</p>
+
       <div class="form-group">
-        <label>אימייל</label>
+        <label>📧 אימייל</label>
         <input
-          formControlName="email"
+          [(ngModel)]="resetEmail"
           type="email"
           class="input"
-          [class.input-error]="
-            form.controls['email'].invalid && form.controls['email'].touched
-          "
           placeholder="example@email.com"
         />
       </div>
 
-      <div class="form-group">
-        <label>סיסמה</label>
-        <input
-          formControlName="password"
-          type="password"
-          class="input"
-          [class.input-error]="
-            form.controls['password'].invalid &&
-            form.controls['password'].touched
-          "
-          placeholder="********"
-        />
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="closeForgotPassword()">❌ בטל</button>
+        <button 
+          class="save-btn" 
+          (click)="sendPasswordReset()"
+          [disabled]="!resetEmail || loading"
+        >
+          <span *ngIf="loading">⏳</span>
+          <span *ngIf="!loading">📧 שלח קישור</span>
+        </button>
       </div>
-
-      <button
-        class="btn btn-primary"
-        [disabled]="loading || form.invalid"
-        type="submit"
-      >
-        <span *ngIf="loading" class="loader"></span>
-        <span *ngIf="!loading">התחבר</span>
-      </button>
-    </form>
-
-    <div *ngIf="error" class="error-message">
-      {{ error }}
     </div>
   </div>
 </div>

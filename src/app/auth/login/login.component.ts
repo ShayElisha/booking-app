@@ -3,6 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import {
   Auth,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -16,6 +17,9 @@ import { getDoc, doc, Firestore } from '@angular/fire/firestore';
 export class LoginComponent {
   loading = false;
   error = '';
+  showPassword = false;
+  showForgotPasswordModal = false;
+  resetEmail = '';
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -140,8 +144,46 @@ export class LoginComponent {
         return 'משתמש לא נמצא.';
       case 'auth/invalid-email':
         return 'אימייל לא תקין.';
+      case 'auth/invalid-credential':
+        return 'פרטי התחברות שגויים.';
       default:
         return 'שגיאה לא ידועה. נסה שוב.';
+    }
+  }
+
+  openForgotPassword(): void {
+    this.showForgotPasswordModal = true;
+    this.resetEmail = this.form.get('email')?.value || '';
+    document.body.classList.add('modal-open');
+  }
+
+  closeForgotPassword(): void {
+    this.showForgotPasswordModal = false;
+    this.resetEmail = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  async sendPasswordReset(): Promise<void> {
+    if (!this.resetEmail || !this.resetEmail.includes('@')) {
+      this.toastr.error('נא להזין אימייל תקין');
+      return;
+    }
+
+    this.loading = true;
+    
+    try {
+      await sendPasswordResetEmail(this.auth, this.resetEmail);
+      this.toastr.success('קישור לאיפוס סיסמה נשלח למייל!');
+      this.closeForgotPassword();
+    } catch (err: any) {
+      console.error('Error sending password reset:', err);
+      if (err.code === 'auth/user-not-found') {
+        this.toastr.error('המייל לא נמצא במערכת');
+      } else {
+        this.toastr.error('שגיאה בשליחת קישור לאיפוס סיסמה');
+      }
+    } finally {
+      this.loading = false;
     }
   }
 }
