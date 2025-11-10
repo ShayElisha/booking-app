@@ -38,12 +38,19 @@ export class BusinessService {
   getBusinesses(): Observable<AppBusiness[]> {
     const businessesRef = collection(this.firestore, 'businesses');
     return from(getDocs(businessesRef)).pipe(
-      map((querySnapshot) =>
-        querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...(doc.data() as AppBusiness),
-        }))
-      ),
+      map((querySnapshot) => {
+        const businesses = querySnapshot.docs.map((doc) => {
+          const data = doc.data() as AppBusiness;
+          const business = {
+            companyId: doc.id, // Make sure companyId is set from document id
+            ...data,
+          };
+          console.log('Business loaded:', business.businessName, 'Logo URL:', business.logoUrl);
+          return business;
+        });
+        console.log('Total businesses loaded:', businesses.length);
+        return businesses;
+      }),
       catchError((error) => {
         console.error('Error fetching businesses:', error);
         return throwError(
@@ -91,6 +98,22 @@ export class BusinessService {
     } catch (error) {
       console.error('Error deleting business:', error);
       throw new Error('שגיאה במחיקת עסק: ' + (error as Error).message);
+    }
+  }
+
+  // Add Review
+  async addReview(review: any): Promise<any> {
+    try {
+      const reviewsRef = collection(
+        this.firestore,
+        `businesses/${review.companyId}/reviews`
+      );
+      const docRef = await addDoc(reviewsRef, review);
+      console.log('✅ Review added:', docRef.id);
+      return { id: docRef.id, ...review };
+    } catch (error) {
+      console.error('❌ Error adding review:', error);
+      throw new Error('שגיאה בהוספת ביקורת: ' + (error as Error).message);
     }
   }
 }

@@ -39,18 +39,6 @@
       </button>
     </form>
 
-    <div class="or-divider">או</div>
-
-    <button
-      class="btn btn-google"
-      (click)="loginWithGoogle()"
-      [disabled]="loading"
-      type="button"
-    >
-      <i class="fab fa-google"></i>
-      התחברות עם Google
-    </button>
-
     <div *ngIf="error" class="error-message">
       {{ error }}
     </div>

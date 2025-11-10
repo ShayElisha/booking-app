@@ -13,4 +13,5 @@ export interface Appointment {
   createdAt: string; // תאריך ושעה של יצירת התור (ISO string)
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed'; // סטטוס התור
   notes?: string; // הערות נוספות (אופציונלי)
+  hasReview?: boolean; // האם ניתנה ביקורת לתור זה
 }

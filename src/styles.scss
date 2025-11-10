@@ -43,4 +43,25 @@ body {
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
+// Modal z-index override to ensure it's above header
+.modal.active {
+  z-index: 999999 !important;
+}
+
+.modal.active .modal-content {
+  z-index: 1000000 !important;
+}
+
+// Hide header when modal is open
+body.modal-open .header {
+  display: none !important;
+}
+
+// Prevent body scroll when modal is open
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+
 @import 'ngx-toastr/toastr';

@@ -1,39 +1,154 @@
-<div class="container">
-  <h2>תרשים תורים</h2>
+<div class="appointments-page">
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="hero-content">
+      <h1>📅 ניהול תורים</h1>
+      <p>צפייה וניהול של כל התורים של העסק שלך</p>
+    </div>
+    <div class="hero-date">
+      <div class="date-badge">
+        <span class="date-icon">📆</span>
+        <span class="date-text">{{ today | date : "dd/MM/yyyy, EEEE" : undefined : 'he' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="!(schedules$ | async)" class="loading-state">
+    <div class="spinner"></div>
+    <p>טוען תורים...</p>
+  </div>
+
+  <!-- Content -->
   <ng-container *ngIf="schedules$ | async as schedules">
-    <div *ngFor="let schedule of schedules" class="date-group">
-      <h3>{{ schedule.date }}</h3>
-      <div class="timeline">
-        <div class="timeline-line"></div>
-        <div
-          *ngFor="let slot of schedule.slots"
-          class="time-slot"
-          [style.--start-time]="getTimePosition(slot.time)"
-        >
-          <span class="slot-time">{{ slot.time }}</span>
-          <div
-            *ngFor="let appt of slot.appointments"
-            class="appointment"
-            [style.--start-offset]="0"
-            [style.--duration]="appt.duration"
+    <!-- Empty State -->
+    <div *ngIf="schedules.length === 0" class="empty-state">
+      <div class="empty-icon">📅</div>
+      <h3>אין תורים קבועים</h3>
+      <p>התורים שלקוחות יקבעו יופיעו כאן</p>
+    </div>
+
+    <!-- Schedules -->
+    <div *ngIf="schedules.length > 0" class="schedules-container">
+      <div *ngFor="let schedule of schedules" class="date-section">
+        <!-- Date Header -->
+        <div class="date-header">
+          <div class="date-label">
+            <span class="date-icon">📅</span>
+            <span class="date-text">{{ schedule.date | date : "EEEE, dd/MM/yyyy" : undefined : 'he' }}</span>
+          </div>
+          <div class="appointments-count">
+            {{ getTotalAppointments(schedule) }} תורים
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="timeline-container">
+          <div 
+            *ngFor="let slot of schedule.slots" 
+            class="time-slot"
+            [class.has-appointments]="slot.appointments.length > 0"
           >
-            <div class="appointment-content">
-              <p>
-                <strong>שעה:</strong> {{ appt.time }} -
-                {{ getEndTime(appt.time, appt.duration) }}
-              </p>
-              <p><strong>שירות:</strong> {{ appt.serviceName }}</p>
-              <p><strong>לקוח:</strong> {{ appt.customerName || "לא צוין" }}</p>
-              <p><strong>עובד:</strong> {{ appt.employeeName || "לא צוין" }}</p>
-              <p><strong>סטטוס:</strong> {{ appt.status }}</p>
+            <!-- Time Label -->
+            <div class="time-label">
+              <span class="time-text">{{ slot.time }}</span>
+            </div>
+
+            <!-- Appointments -->
+            <div class="appointments-wrapper">
+              <div 
+                *ngFor="let appt of slot.appointments; let i = index" 
+                class="appointment-card"
+                [class.status-pending]="appt.status === 'pending'"
+                [class.status-confirmed]="appt.status === 'confirmed'"
+                [class.status-completed]="appt.status === 'completed'"
+                [class.status-cancelled]="appt.status === 'cancelled'"
+              >
+                <!-- Status Badge -->
+                <div class="status-indicator"></div>
+
+                <!-- Card Content -->
+                <div class="appointment-content">
+                  <div class="appointment-header">
+                    <h4 class="service-name">{{ appt.serviceName }}</h4>
+                    <span class="status-badge">{{ getStatusText(appt.status) }}</span>
+                  </div>
+
+                  <div class="appointment-details">
+                    <div class="detail-row">
+                      <span class="detail-icon">⏰</span>
+                      <span class="detail-text">
+                        {{ appt.time }} - {{ getEndTime(appt.time, appt.duration) }}
+                        <span class="duration">({{ appt.duration }} דקות)</span>
+                      </span>
+                    </div>
+
+                    <div class="detail-row" *ngIf="appt.customerName">
+                      <span class="detail-icon">👤</span>
+                      <span class="detail-text">{{ appt.customerName }}</span>
+                    </div>
+
+                    <div class="detail-row" *ngIf="appt.employeeName">
+                      <span class="detail-icon">👨‍💼</span>
+                      <span class="detail-text">{{ appt.employeeName }}</span>
+                    </div>
+
+                    <div class="detail-row" *ngIf="appt.notes">
+                      <span class="detail-icon">📝</span>
+                      <span class="detail-text">{{ appt.notes }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="appointment-actions">
+                  <button 
+                    *ngIf="appt.status === 'pending'"
+                    class="action-btn confirm-btn"
+                    (click)="$event.stopPropagation(); confirmAppointment(appt)"
+                    title="אשר תור"
+                  >
+                    ✅
+                  </button>
+                  <button 
+                    *ngIf="appt.status === 'pending' || appt.status === 'confirmed'"
+                    class="action-btn cancel-btn"
+                    (click)="$event.stopPropagation(); cancelAppointment(appt)"
+                    title="בטל תור"
+                  >
+                    ❌
+                  </button>
+                  <button 
+                    *ngIf="appt.status === 'confirmed'"
+                    class="action-btn complete-btn"
+                    (click)="$event.stopPropagation(); completeAppointment(appt)"
+                    title="סמן כהושלם"
+                  >
+                    ✔️
+                  </button>
+                </div>
+              </div>
+
+              <!-- Empty Slot Placeholder -->
+              <div *ngIf="slot.appointments.length === 0" class="empty-slot">
+                <span class="empty-text">🔓 פנוי</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </ng-container>
-  <footer class="footer">
-    <p>{{ today | date : "yyyy-MM-dd" }}</p>
-    <!-- Use current date -->
-  </footer>
+
+  <!-- Stats Footer -->
+  <div class="stats-footer" *ngIf="schedules$ | async as schedules">
+    <div class="stat-item">
+      <span class="stat-label">סה"כ תורים:</span>
+      <span class="stat-value">{{ getAllAppointmentsCount(schedules) }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">תאריכים:</span>
+      <span class="stat-value">{{ schedules.length }}</span>
+    </div>
+  </div>
 </div>

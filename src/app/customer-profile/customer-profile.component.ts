@@ -30,6 +30,12 @@ export class CustomerProfileComponent implements OnInit {
   greeting: string = '';
   isLoadingUser: boolean = true;
   userError: string | null = null;
+  
+  // Review modal
+  showReviewModal = false;
+  selectedAppointment: AppointmentWithBusiness | null = null;
+  reviewRating = 0;
+  reviewComment = '';
 
   constructor(
     private appointmentService: AppointmentService,
@@ -101,15 +107,23 @@ export class CustomerProfileComponent implements OnInit {
     });
   }
   loadAppointmentsAndFavorites(customerId: string): void {
+    console.log('🔍 Starting to load appointments for customer:', customerId);
+    
+    // איפוס רשימת התורים
+    this.appointments = [];
+    
     this.businessService.getBusinesses().subscribe({
       next: (businesses) => {
-        console.log('Businesses fetched:', businesses);
+        console.log('✅ Total businesses fetched:', businesses.length);
+        
         const validBusinesses = businesses
           .filter(
             (b): b is AppBusiness & { companyId: string } =>
               b.companyId != null && b.companyId.trim() !== ''
           )
           .map((b) => ({ ...b, companyId: b.companyId! }));
+
+        console.log('✅ Valid businesses (with companyId):', validBusinesses.length);
 
         const businessUsageMap = new Map<string, BusinessUsage>();
         const businessMap = new Map<string, AppBusiness>();
@@ -121,17 +135,22 @@ export class CustomerProfileComponent implements OnInit {
           businessMap.set(business.companyId, business);
         });
 
+        let processedBusinesses = 0;
+        
         validBusinesses.forEach((business) => {
-          console.log(
-            `Checking appointments for business: ${business.companyId}`
-          );
+          console.log(`🏢 Checking appointments for business: ${business.businessName} (ID: ${business.companyId})`);
+          
           this.appointmentService
             .getAppointmentsByCustomerId(business.companyId, customerId)
             .subscribe({
               next: (appointments) => {
-                const pendingAppointments: AppointmentWithBusiness[] =
+                processedBusinesses++;
+                console.log(`📅 Found ${appointments.length} appointments in ${business.businessName}`);
+                console.log('   Appointments:', appointments);
+                
+                const allAppointments: AppointmentWithBusiness[] =
                   appointments
-                    .filter((appointment) => {
+                    .map((appointment) => {
                       // Convert date to Date object
                       const appointmentDate =
                         typeof appointment.date === 'object' &&
@@ -140,37 +159,36 @@ export class CustomerProfileComponent implements OnInit {
                           : typeof appointment.date === 'string'
                           ? new Date(appointment.date)
                           : appointment.date;
-                      const appointmentDateTime = new Date(
-                        `${appointmentDate.toISOString().split('T')[0]}T${
-                          appointment.time
-                        }`
-                      );
-                      console.log(
-                        'Appointment date-time:',
-                        appointmentDateTime,
-                        'Status:',
-                        appointment.status
-                      );
-                      return (
-                        appointmentDateTime > new Date() && // זמני: ניתן להסיר לבדיקה
-                        appointment.status === 'pending'
-                      );
+                      
+                      console.log(`   📌 Appointment: ${appointment.serviceName}`);
+                      console.log(`      Date: ${appointmentDate}`);
+                      console.log(`      Time: ${appointment.time}`);
+                      console.log(`      Status: ${appointment.status}`);
+                      
+                      return {
+                        ...appointment,
+                        date: appointmentDate,
+                        businessName: business.businessName,
+                      };
                     })
-                    .map((appointment) => ({
-                      ...appointment,
-                      date:
-                        typeof appointment.date === 'object' &&
-                        'toDate' in appointment.date
-                          ? (appointment.date as any).toDate()
-                          : typeof appointment.date === 'string'
-                          ? new Date(appointment.date)
-                          : appointment.date,
-                      businessName: business.businessName,
-                    }));
+                    .sort((a, b) => {
+                      // Sort by date (newest first)
+                      const dateA = new Date(a.date);
+                      const dateB = new Date(b.date);
+                      return dateB.getTime() - dateA.getTime();
+                    });
+                
+                console.log(`   ✅ Total appointments: ${allAppointments.length}`);
+                
                 this.appointments = [
                   ...this.appointments,
-                  ...pendingAppointments,
+                  ...allAppointments,
                 ];
+                
+                // הדפסת סטטוסים לבדיקה
+                this.appointments.forEach(app => {
+                  console.log(`📌 Appointment: ${app.serviceName} | Status: ${app.status} | HasReview: ${app.hasReview || false}`);
+                });
 
                 const usage = businessUsageMap.get(business.companyId);
                 if (usage) {
@@ -183,15 +201,37 @@ export class CustomerProfileComponent implements OnInit {
                   .sort((a, b) => b.appointmentCount - a.appointmentCount)
                   .slice(0, 5);
 
-                console.log('Appointments loaded:', this.appointments);
-                console.log('Favorite businesses:', this.favoriteBusinesses);
+                console.log(`📊 Progress: ${processedBusinesses}/${validBusinesses.length} businesses processed`);
+                console.log(`📋 Total appointments so far: ${this.appointments.length}`);
+                console.log(`⭐ Favorite businesses: ${this.favoriteBusinesses.length}`);
               },
-              error: (err) => console.error('Error loading appointments:', err),
+              error: (err) => {
+                processedBusinesses++;
+                console.error(`❌ Error loading appointments for ${business.businessName}:`, err);
+              },
             });
         });
       },
-      error: (err) => console.error('Error loading businesses:', err),
+      error: (err) => console.error('❌ Error loading businesses:', err),
     });
+  }
+
+  isPastAppointment(appointment: AppointmentWithBusiness): boolean {
+    const appointmentDateTime = new Date(
+      `${new Date(appointment.date).toISOString().split('T')[0]}T${appointment.time}`
+    );
+    return appointmentDateTime < new Date();
+  }
+
+  getStatusText(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'ממתין',
+      'confirmed': 'אושר',
+      'completed': 'הושלם',
+      'cancelled': 'בוטל',
+      'no-show': 'לא הגיע'
+    };
+    return statusMap[status] || status;
   }
 
   async deleteAppointment(appointment: AppointmentWithBusiness): Promise<void> {
@@ -199,6 +239,12 @@ export class CustomerProfileComponent implements OnInit {
       console.error('Missing appointment ID or company ID');
       return;
     }
+    
+    const confirmDelete = confirm('האם אתה בטוח שברצונך לבטל את התור?');
+    if (!confirmDelete) {
+      return;
+    }
+    
     try {
       await this.appointmentService.deleteAppointment(
         appointment.companyId,
@@ -208,8 +254,90 @@ export class CustomerProfileComponent implements OnInit {
         (app) => app.id !== appointment.id
       );
       console.log('Appointment deleted:', appointment.id);
+      alert('התור בוטל בהצלחה');
     } catch (error) {
       console.error('Error deleting appointment:', error);
+      alert('שגיאה בביטול התור');
+    }
+  }
+
+  getPendingCount(): number {
+    return this.appointments.filter(app => app.status === 'pending').length;
+  }
+
+  getConfirmedAndCompletedCount(): number {
+    return this.appointments.filter(app => 
+      app.status === 'confirmed' || app.status === 'completed'
+    ).length;
+  }
+
+  getCompletedCount(): number {
+    return this.appointments.filter(app => app.status === 'completed').length;
+  }
+
+  getCancelledCount(): number {
+    return this.appointments.filter(app => app.status === 'cancelled').length;
+  }
+
+  openReviewModal(appointment: AppointmentWithBusiness): void {
+    this.selectedAppointment = appointment;
+    this.reviewRating = 0;
+    this.reviewComment = '';
+    this.showReviewModal = true;
+    document.body.classList.add('modal-open');
+  }
+
+  closeReviewModal(): void {
+    this.showReviewModal = false;
+    this.selectedAppointment = null;
+    this.reviewRating = 0;
+    this.reviewComment = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  async submitReview(): Promise<void> {
+    if (!this.selectedAppointment || !this.reviewRating || !this.reviewComment || !this.userData) {
+      alert('נא למלא את כל השדות');
+      return;
+    }
+
+    const review = {
+      companyId: this.selectedAppointment.companyId,
+      customerId: this.customerId,
+      customer: this.userData.fullName,
+      appointmentId: this.selectedAppointment.id,
+      serviceName: this.selectedAppointment.serviceName,
+      rating: this.reviewRating,
+      comment: this.reviewComment,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      // שמירה ב-Firestore
+      await this.businessService.addReview(review);
+      
+      // עדכון התור שניתנה ביקורת
+      if (this.selectedAppointment.id && this.selectedAppointment.companyId) {
+        await this.appointmentService.updateAppointment(
+          this.selectedAppointment.companyId,
+          this.selectedAppointment.id,
+          { hasReview: true }
+        );
+        
+        // עדכון מקומי של רשימת התורים
+        const appointmentIndex = this.appointments.findIndex(
+          app => app.id === this.selectedAppointment?.id
+        );
+        if (appointmentIndex !== -1) {
+          this.appointments[appointmentIndex].hasReview = true;
+        }
+      }
+      
+      alert('הביקורת נשלחה בהצלחה! תודה על המשוב');
+      this.closeReviewModal();
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('שגיאה בשליחת הביקורת');
     }
   }
 }

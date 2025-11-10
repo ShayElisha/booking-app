@@ -4,8 +4,6 @@ import {
   Auth,
   createUserWithEmailAndPassword,
   updateProfile,
-  signInWithPopup,
-  GoogleAuthProvider,
 } from '@angular/fire/auth';
 import { Router, ActivatedRoute } from '@angular/router';
 import { UserService } from '../../services/user.service';
@@ -108,30 +106,6 @@ export class RegisterComponent {
     this.loading = false;
   }
 
-  async registerWithGoogle() {
-    this.loading = true;
-    this.error = '';
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(this.auth, provider);
-      if (result.user) {
-        await this.userService.saveUserToFirestoreIfNotExists({
-          uid: result.user.uid,
-          fullName: result.user.displayName || '',
-          email: result.user.email || '',
-          phoneNumber: result.user.phoneNumber || '',
-          role: 'customer',
-          photoURL: result.user.photoURL || '',
-          createdAt: new Date(),
-          termsAccepted: true,
-        });
-        this.router.navigate(['/']);
-      }
-    } catch (err: any) {
-      this.error = this.firebaseErrorMsg(err.code);
-    }
-    this.loading = false;
-  }
 
   firebaseErrorMsg(code: string): string {
     switch (code) {

@@ -1,51 +1,112 @@
-<section class="customer-profile">
-  <h1>ברוכים הבאים לפרופיל הלקוח</h1>
-  <p>חפש והכר את העסקים המובילים שלנו</p>
-
-  <!-- מנוע חיפוש -->
-  <div class="search-section">
-    <form [formGroup]="searchForm">
-      <input
-        type="text"
-        formControlName="searchTerm"
-        placeholder="חפש עסק לפי שם, כתובת או תיאור..."
-        class="search-input"
-      />
-    </form>
-  </div>
-
-  <!-- רשימת עסקים בכרטיסיות -->
-  <div class="businesses-grid">
-    <div class="business-card" *ngFor="let business of filteredBusinesses">
-      <h3>{{ business.businessName }}</h3>
-      <p>כתובת: {{ business.address }}</p>
-      <p>טלפון: {{ business.phoneNumber }}</p>
-      <p>תיאור: {{ business.description || "ללא תיאור" }}</p>
-      <div class="hours">
-        <h4>שעות פעילות:</h4>
-        <ul>
-          <li *ngFor="let hour of business.openingHours">
-            {{ hour.day }}: {{ hour.from }} - {{ hour.to }}
-          </li>
-        </ul>
-      </div>
-      <img
-        [src]="business.logoUrl || 'assets/placeholder.png'"
-        alt="לוגו"
-        class="logo"
-      />
-      <button
-        [routerLink]="['/business', business.companyId]"
-        class="business-link-btn"
-      >
-        לעמוד העסק
-      </button>
+<section class="search-page">
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span class="gradient-text">גלה עסקים מובילים</span>
+      </h1>
+      <p class="hero-subtitle">מצא את העסק המושלם עבורך וקבע תור בקלות</p>
     </div>
   </div>
 
-  <div *ngIf="filteredBusinesses.length === 0 && !loading" class="no-results">
-    לא נמצאו עסקים התואמים לחיפוש.
+  <!-- Search Bar -->
+  <div class="search-container">
+    <form [formGroup]="searchForm" class="search-form">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          formControlName="searchTerm"
+          placeholder="חפש עסק לפי שם, כתובת או תיאור..."
+          class="search-input"
+        />
+        <span *ngIf="searchForm.get('searchTerm')?.value" 
+              class="clear-icon" 
+              (click)="clearSearch()">✕</span>
+      </div>
+    </form>
+    <div class="results-count" *ngIf="!loading">
+      <span *ngIf="filteredBusinesses.length > 0">
+        נמצאו {{ filteredBusinesses.length }} עסקים
+      </span>
+    </div>
   </div>
-  <div *ngIf="error" class="error-msg">{{ error }}</div>
-  <div *ngIf="loading" class="loading">טוען...</div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>טוען עסקים...</p>
+  </div>
+
+  <!-- Businesses Grid -->
+  <div class="businesses-grid" *ngIf="!loading">
+    <div class="business-card" 
+         *ngFor="let business of filteredBusinesses"
+         [routerLink]="['/business', business.companyId]">
+      
+      <!-- Card Header with Logo -->
+      <div class="card-header">
+        <div class="logo-container">
+          <img
+            *ngIf="business.logoUrl"
+            [src]="business.logoUrl"
+            [alt]="business.businessName"
+            class="business-logo"
+            (error)="onImageError($event)"
+          />
+          <div *ngIf="!business.logoUrl" class="logo-placeholder">
+            🏢
+          </div>
+        </div>
+      </div>
+
+      <!-- Card Content -->
+      <div class="card-content">
+        <h3 class="business-name">{{ business.businessName }}</h3>
+        <p class="business-description">{{ business.description || "עסק מקצועי ואיכותי" }}</p>
+        
+        <div class="info-row">
+          <span class="info-icon">📍</span>
+          <span class="info-text">{{ business.address }}</span>
+        </div>
+        
+        <div class="info-row">
+          <span class="info-icon">📞</span>
+          <span class="info-text">{{ business.phoneNumber }}</span>
+        </div>
+
+        <!-- Opening Hours Summary -->
+        <div class="hours-summary" *ngIf="business.openingHours && business.openingHours.length > 0">
+          <span class="hours-icon">🕐</span>
+          <span class="hours-text">
+            {{ business.openingHours[0].from }} - {{ business.openingHours[0].to }}
+          </span>
+          <span class="hours-badge" *ngIf="business.openingHours.length > 1">
+            +{{ business.openingHours.length - 1 }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="card-footer">
+        <button class="view-btn">
+          <span>לעמוד העסק</span>
+          <span class="arrow">←</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="filteredBusinesses.length === 0 && !loading" class="empty-state">
+    <div class="empty-icon">🔍</div>
+    <h3>לא נמצאו עסקים</h3>
+    <p>נסה לחפש במילים אחרות או נקה את החיפוש</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <div class="error-icon">⚠️</div>
+    <p>{{ error }}</p>
+  </div>
 </section>

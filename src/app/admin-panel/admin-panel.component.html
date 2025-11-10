@@ -22,9 +22,10 @@
         <td>{{ business.companyId }}</td>
         <td>
           <img
-            [src]="business.logoUrl || 'assets/placeholder.png'"
+            [src]="business.logoUrl || fallbackImage"
             alt="לוגו"
             class="logo"
+            (error)="onImageError($event)"
           />
         </td>
       </tr>

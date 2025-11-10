@@ -7,18 +7,30 @@
   <!-- כותרת ראשית -->
   <div class="hero">
     <div class="hero-content">
-      <h1 *ngIf="!error">שלום, הגאתם לעסק {{ businessName }}</h1>
-      <p>
-        ברוכים הבאים! כאן תמצאו את השירותים המובילים שלנו, הכירו את הצוות וקראו
-        מה לקוחות חושבים עלינו.
-      </p>
+      <h1 *ngIf="!error">👋 שלום, הגעתם לעסק {{ businessName }}</h1>
+      <div class="description-section">
+        <p>{{ business?.description || 'ברוכים הבאים! כאן תמצאו את השירותים המובילים שלנו, הכירו את הצוות המקצועי שלנו וקראו מה לקוחות מרוצים חושבים עלינו.' }}</p>
+        <button 
+          *ngIf="isOwner" 
+          class="edit-description-btn" 
+          (click)="openDescriptionModal()"
+          title="ערוך תיאור"
+        >
+          ✏️
+        </button>
+      </div>
     </div>
     <div class="hero-image">
       <img
-        [src]="sanitizeUrl(logoUrl || fallbackImage)"
-        alt="תמונת העסק"
-        (error)="logoUrl = fallbackImage"
+        *ngIf="logoUrl"
+        [src]="sanitizeUrl(logoUrl)"
+        [alt]="businessName"
+        (error)="onImageError($event)"
       />
+      <div *ngIf="!logoUrl" class="no-logo">
+        <div>🏢</div>
+        <div>אין לוגו</div>
+      </div>
     </div>
   </div>
 
@@ -43,6 +55,7 @@
           <th>שם</th>
           <th>תפקיד</th>
           <th>טלפון</th>
+          <th>פעולות</th>
         </tr>
       </thead>
       <tbody>
@@ -50,6 +63,16 @@
           <td>{{ employee.name }}</td>
           <td>{{ employee.role }}</td>
           <td>{{ employee.phone }}</td>
+          <td>
+            <div class="table-actions">
+              <button class="edit-btn-small" (click)="editEmployee(employee)" title="ערוך">
+                ✏️
+              </button>
+              <button class="delete-btn-small" (click)="deleteEmployee(employee)" title="מחק">
+                🗑️
+              </button>
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -72,8 +95,16 @@
     </div>
     <div class="services-grid" *ngIf="services.length > 0; else noServices">
       <div class="service-card" *ngFor="let service of services">
+        <div class="service-image">
+          <img 
+            *ngIf="service.imageUrl" 
+            [src]="service.imageUrl" 
+            [alt]="service.name"
+            (error)="onImageError($event)"
+          />
+        </div>
         <h3>{{ service.name }}</h3>
-        <p>{{ service.description }}</p>
+        <p>{{ service.description || 'שירות איכותי ומקצועי' }}</p>
         <p class="price">₪{{ service.price }}</p>
         <div class="service-actions">
           <button
@@ -81,14 +112,21 @@
             class="book-service-btn"
             (click)="openBookingModal(service)"
           >
-            הזמן
+            📅 הזמן שירות
+          </button>
+          <button
+            *ngIf="isOwner"
+            class="edit-service-btn"
+            (click)="editService(service)"
+          >
+            ✏️ ערוך
           </button>
           <button
             *ngIf="isOwner"
             class="delete-service-btn"
             (click)="deleteService(service)"
           >
-            מחק
+            🗑️ מחק
           </button>
         </div>
       </div>
@@ -130,123 +168,142 @@
       [class.active]="showServiceModal"
       (click)="$event.stopPropagation()"
     >
-      <h3>הוספת שירות חדש</h3>
+      <button class="close-modal-btn" (click)="closeServiceModal()">✕</button>
+      <h3>{{ editingServiceId ? '✏️ עריכת שירות' : '✨ הוספת שירות חדש' }}</h3>
       <div class="form-slide" [class.active]="serviceFormStep === 1">
-        <div class="form-group">
-          <label>שם השירות</label>
-          <input type="text" [(ngModel)]="newService.name" required />
-          <span class="error" *ngIf="!newService.name">שדה נדרש</span>
+        <div class="form-row">
+          <div class="form-group">
+            <label>📝 שם השירות</label>
+            <input type="text" [(ngModel)]="newService.name" placeholder="לדוגמה: תספורת גברים" required />
+            <span class="error" *ngIf="!newService.name">שדה נדרש</span>
+          </div>
         </div>
+
         <div class="form-group">
-          <label>תיאור</label>
-          <textarea [(ngModel)]="newService.description" required></textarea>
+          <label>💬 תיאור השירות</label>
+          <textarea [(ngModel)]="newService.description" placeholder="תאר את השירות..." required></textarea>
           <span class="error" *ngIf="!newService.description">שדה נדרש</span>
         </div>
-        <div class="form-group">
-          <label>מחיר (בשקלים)</label>
-          <input
-            type="number"
-            [(ngModel)]="newService.price"
-            min="0"
-            required
-          />
-          <span class="error" *ngIf="!newService.price || newService.price <= 0"
-            >חייב להיות גדול מ-0</span
-          >
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>💰 מחיר (₪)</label>
+            <input
+              type="number"
+              [(ngModel)]="newService.price"
+              min="0"
+              placeholder="150"
+              required
+            />
+            <span class="error" *ngIf="!newService.price || newService.price <= 0">חייב להיות גדול מ-0</span>
+          </div>
+
+          <div class="form-group">
+            <label>🏷️ מחיר בהנחה (₪)</label>
+            <input type="number" [(ngModel)]="newService.discountPrice" min="0" placeholder="אופציונלי" />
+          </div>
         </div>
-        <div class="form-group">
-          <label>מחיר בהנחה (אופציונלי)</label>
-          <input type="number" [(ngModel)]="newService.discountPrice" min="0" />
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>🏷️ קטגוריה</label>
+            <input type="text" [(ngModel)]="newService.category" placeholder="תספורת, צביעה..." required />
+            <span class="error" *ngIf="!newService.category">שדה נדרש</span>
+          </div>
+
+          <div class="form-group">
+            <label>⏱️ משך (דקות)</label>
+            <input
+              type="number"
+              [(ngModel)]="newService.duration"
+              min="0"
+              placeholder="30"
+              required
+            />
+            <span class="error" *ngIf="!newService.duration || newService.duration <= 0">חייב להיות גדול מ-0</span>
+          </div>
         </div>
+
         <div class="form-group">
-          <label>קטגוריה</label>
-          <input type="text" [(ngModel)]="newService.category" required />
-          <span class="error" *ngIf="!newService.category">שדה נדרש</span>
-        </div>
-        <div class="form-group">
-          <label>משך (בדקות)</label>
-          <input
-            type="number"
-            [(ngModel)]="newService.duration"
-            min="0"
-            required
-          />
-          <span
-            class="error"
-            *ngIf="!newService.duration || newService.duration <= 0"
-            >חייב להיות גדול מ-0</span
-          >
-        </div>
-        <div class="form-group">
-          <label>זמינות</label>
+          <label>📊 זמינות</label>
           <select [(ngModel)]="newService.availability" required>
-            <option value="available">זמין</option>
-            <option value="unavailable">לא זמין</option>
-            <option value="on_request">בהזמנה</option>
+            <option value="">בחר זמינות...</option>
+            <option value="available">✅ זמין</option>
+            <option value="unavailable">❌ לא זמין</option>
+            <option value="on_request">📞 בהזמנה</option>
           </select>
           <span class="error" *ngIf="!newService.availability">שדה נדרש</span>
         </div>
+
         <div class="form-group">
-          <label>תגיות (מופרדות בפסיק)</label>
+          <label>🏷️ תגיות</label>
           <input
             type="text"
             [(ngModel)]="tagsInput"
-            placeholder="לדוגמה: מהיר, פרימיום"
+            placeholder="מהיר, פרימיום, מבצע (מופרדות בפסיק)"
           />
         </div>
+
         <div class="form-group">
-          <label>כתובת תמונה (אופציונלי)</label>
-          <input type="text" [(ngModel)]="newService.imageUrl" />
+          <label>📷 תמונת השירות</label>
+          <input type="file" accept="image/*" (change)="onServiceImageSelected($event)" />
+          <div class="image-preview" *ngIf="serviceImagePreview">
+            <img [src]="serviceImagePreview" alt="תצוגה מקדימה" />
+          </div>
         </div>
-        <div class="form-group">
-          <label>שירות מומלץ?</label>
-          <input type="checkbox" [(ngModel)]="newService.isFeatured" />
-        </div>
-        <div class="form-group">
-          <label>דורש בחירת עובד?</label>
-          <input type="checkbox" [(ngModel)]="newService.requiresEmployee" />
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="newService.isFeatured" />
+            <span>⭐ שירות מומלץ</span>
+          </label>
+
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="newService.requiresEmployee" />
+            <span>👤 דורש בחירת עובד</span>
+          </label>
         </div>
         <div class="form-actions">
+          <button class="cancel-btn" (click)="closeServiceModal()">❌ בטל</button>
           <button
             class="save-btn"
             (click)="nextServiceStep()"
             [disabled]="!isServiceFormValid()"
           >
-            {{ newService.requiresEmployee ? "הבא" : "שמור" }}
+            {{ newService.requiresEmployee ? "➡️ הבא" : (editingServiceId ? "💾 עדכן" : "💾 שמור") }}
           </button>
-          <button class="cancel-btn" (click)="closeServiceModal()">בטל</button>
         </div>
       </div>
       <div class="form-slide" [class.active]="serviceFormStep === 2">
         <div class="form-group">
-          <label>בחר עובדים</label>
+          <label>👥 בחר עובדים לשירות</label>
+          <p class="helper-text">בחר את העובדים שיכולים לבצע את השירות הזה</p>
           <div class="employee-scroll">
             <div *ngFor="let employee of employees" class="employee-option">
-              <input
-                type="checkbox"
-                [(ngModel)]="employee.selected"
-                [ngModelOptions]="{ standalone: true }"
-              />
-              <span
-                >{{ employee.name }} - {{ employee.role }} ({{
-                  employee.phone
-                }})</span
-              >
+              <label class="checkbox-label employee-checkbox">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="employee.selected"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+                <span class="employee-info">
+                  <span class="employee-name">{{ employee.name }}</span>
+                  <span class="employee-details">{{ employee.role }} • {{ employee.phone }}</span>
+                </span>
+              </label>
             </div>
           </div>
-          <span class="error" *ngIf="!hasSelectedEmployees()"
-            >נא לבחור לפחות עובד אחד</span
-          >
+          <span class="error" *ngIf="!hasSelectedEmployees()">נא לבחור לפחות עובד אחד</span>
         </div>
         <div class="form-actions">
+          <button class="cancel-btn" (click)="closeServiceModal()">❌ בטל</button>
           <button
             class="save-btn"
             (click)="addNewService()"
             [disabled]="!isEmployeeFormValid()"
           >
-            שמור
+            {{ editingServiceId ? "💾 עדכן שירות" : "💾 שמור שירות" }}
           </button>
-          <button class="cancel-btn" (click)="closeServiceModal()">בטל</button>
         </div>
       </div>
     </div>
@@ -263,40 +320,79 @@
       [class.active]="showEmployeeModal"
       (click)="$event.stopPropagation()"
     >
-      <h3>הוספת עובד חדש</h3>
+      <button class="close-modal-btn" (click)="closeEmployeeModal()">✕</button>
+      <h3>{{ editingEmployeeId ? '✏️ עריכת עובד' : '👤 הוספת עובד חדש' }}</h3>
       <div class="form-slide active">
         <div class="form-group">
-          <label>שם העובד</label>
-          <input type="text" [(ngModel)]="newEmployee.name" required />
+          <label>👨‍💼 שם העובד</label>
+          <input type="text" [(ngModel)]="newEmployee.name" placeholder="שם מלא" required />
           <span class="error" *ngIf="!newEmployee.name">שדה נדרש</span>
         </div>
-        <div class="form-group">
-          <label>תפקיד</label>
-          <input type="text" [(ngModel)]="newEmployee.role" required />
-          <span class="error" *ngIf="!newEmployee.role">שדה נדרש</span>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>💼 תפקיד</label>
+            <input type="text" [(ngModel)]="newEmployee.role" placeholder="מעצב שיער, ספר..." required />
+            <span class="error" *ngIf="!newEmployee.role">שדה נדרש</span>
+          </div>
+
+          <div class="form-group">
+            <label>📞 טלפון</label>
+            <input type="text" [(ngModel)]="newEmployee.phone" placeholder="050-1234567" required />
+            <span class="error" *ngIf="!newEmployee.phone">שדה נדרש</span>
+          </div>
         </div>
+
         <div class="form-group">
-          <label>טלפון</label>
-          <input type="text" [(ngModel)]="newEmployee.phone" required />
-          <span class="error" *ngIf="!newEmployee.phone">שדה נדרש</span>
+          <label>📷 תמונת העובד</label>
+          <input type="file" accept="image/*" (change)="onEmployeeImageSelected($event)" />
+          <div class="image-preview" *ngIf="employeeImagePreview">
+            <img [src]="employeeImagePreview" alt="תצוגה מקדימה" />
+          </div>
         </div>
+
         <div class="form-group">
-          <label>שירותים (מופרדות בפסיק)</label>
+          <label>✂️ שירותים</label>
           <input
             type="text"
             [(ngModel)]="newEmployee.services"
-            placeholder="לדוגמה: תספורת, צביעה"
+            placeholder="תספורת, צביעה, איפור (מופרדות בפסיק)"
           />
+          <p class="helper-text">הזן את השירותים שהעובד יכול לבצע, מופרדים בפסיק</p>
         </div>
+
+        <div class="form-group">
+          <label>⏰ שעות עבודה</label>
+          <p class="helper-text">הגדר את שעות העבודה של העובד (אופציונלי)</p>
+          <div class="hours-table">
+            <div *ngFor="let day of weekDays" class="hour-row">
+              <label class="day-label">{{ day }}</label>
+              <input 
+                type="time" 
+                [(ngModel)]="employeeHours[day].from" 
+                placeholder="מ-"
+                class="time-input"
+              />
+              <span class="separator">עד</span>
+              <input 
+                type="time" 
+                [(ngModel)]="employeeHours[day].to" 
+                placeholder="עד-"
+                class="time-input"
+              />
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
+          <button class="cancel-btn" (click)="closeEmployeeModal()">❌ בטל</button>
           <button
             class="save-btn"
             (click)="addNewEmployee()"
             [disabled]="!isNewEmployeeFormValid()"
           >
-            שמור
+            {{ editingEmployeeId ? "💾 עדכן עובד" : "💾 שמור עובד" }}
           </button>
-          <button class="cancel-btn" (click)="closeEmployeeModal()">בטל</button>
         </div>
       </div>
     </div>
@@ -454,6 +550,43 @@
           </button>
           <button class="cancel-btn" (click)="closeBookingModal()">בטל</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- מודל לעריכת תיאור העסק -->
+  <div
+    class="modal description-modal"
+    [class.active]="showDescriptionModal"
+    (click)="closeDescriptionModal()"
+  >
+    <div
+      class="modal-content"
+      [class.active]="showDescriptionModal"
+      (click)="$event.stopPropagation()"
+    >
+      <button class="close-modal-btn" (click)="closeDescriptionModal()">✕</button>
+      <h3>📝 ערוך תיאור העסק</h3>
+      
+      <div class="form-group">
+        <label>תיאור העסק</label>
+        <textarea 
+          [(ngModel)]="businessDescription"
+          placeholder="כתוב תיאור מושך על העסק שלך..."
+          rows="6"
+        ></textarea>
+        <p class="helper-text">תיאור זה יופיע בראש דף העסק ויעזור ללקוחות להכיר אותך טוב יותר</p>
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="closeDescriptionModal()">❌ בטל</button>
+        <button 
+          class="save-btn" 
+          (click)="saveDescription()"
+          [disabled]="!businessDescription || businessDescription.trim().length === 0"
+        >
+          💾 שמור תיאור
+        </button>
       </div>
     </div>
   </div>

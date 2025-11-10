@@ -145,4 +145,125 @@ export class AppointmentListComponent implements OnInit {
     const startMinutes = this.timeToMinutes(time);
     return this.minutesToTime(startMinutes + duration);
   }
+
+  getTotalAppointments(schedule: DailySchedule): number {
+    return schedule.slots.reduce((total, slot) => total + slot.appointments.length, 0);
+  }
+
+  getAllAppointmentsCount(schedules: DailySchedule[]): number {
+    return schedules.reduce((total, schedule) => total + this.getTotalAppointments(schedule), 0);
+  }
+
+  getStatusText(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'pending': 'ממתין',
+      'confirmed': 'אושר',
+      'completed': 'הושלם',
+      'cancelled': 'בוטל',
+      'no-show': 'לא הגיע'
+    };
+    return statusMap[status] || status;
+  }
+
+  confirmAppointment(appointment: Appointment): void {
+    console.log('🔘 confirmAppointment called');
+    console.log('📋 Appointment:', appointment);
+    console.log('🏢 Company ID:', this.companyId);
+    console.log('🆔 Appointment ID:', appointment.id);
+    
+    if (!this.companyId || !appointment.id) {
+      console.error('❌ Missing company ID or appointment ID');
+      alert('שגיאה: חסר מזהה עסק או תור');
+      return;
+    }
+
+    const confirmed = confirm(`אשר תור עבור ${appointment.customerName || 'לקוח'}?`);
+    if (!confirmed) {
+      console.log('⚠️ User cancelled the confirmation');
+      return;
+    }
+
+    console.log('📤 Updating appointment status to confirmed...');
+    
+    this.appointmentService.updateAppointmentStatus(
+      this.companyId,
+      appointment.id,
+      'confirmed'
+    ).then(() => {
+      console.log('✅ Appointment confirmed successfully:', appointment.id);
+      // רענון הנתונים
+      this.loadAppointments();
+    }).catch((error) => {
+      console.error('❌ Error confirming appointment:', error);
+      alert('שגיאה באישור התור: ' + (error as Error).message);
+    });
+  }
+
+  cancelAppointment(appointment: Appointment): void {
+    console.log('🔘 cancelAppointment called');
+    console.log('📋 Appointment:', appointment);
+    console.log('🏢 Company ID:', this.companyId);
+    console.log('🆔 Appointment ID:', appointment.id);
+    
+    if (!this.companyId || !appointment.id) {
+      console.error('❌ Missing company ID or appointment ID');
+      alert('שגיאה: חסר מזהה עסק או תור');
+      return;
+    }
+
+    const confirmed = confirm(`בטל תור עבור ${appointment.customerName || 'לקוח'}?`);
+    if (!confirmed) {
+      console.log('⚠️ User cancelled the cancellation');
+      return;
+    }
+
+    console.log('📤 Updating appointment status to cancelled...');
+    
+    this.appointmentService.updateAppointmentStatus(
+      this.companyId,
+      appointment.id,
+      'cancelled'
+    ).then(() => {
+      console.log('✅ Appointment cancelled successfully:', appointment.id);
+      // רענון הנתונים
+      this.loadAppointments();
+    }).catch((error) => {
+      console.error('❌ Error cancelling appointment:', error);
+      alert('שגיאה בביטול התור: ' + (error as Error).message);
+    });
+  }
+
+  completeAppointment(appointment: Appointment): void {
+    console.log('🔘 completeAppointment called');
+    console.log('📋 Appointment:', appointment);
+    console.log('🏢 Company ID:', this.companyId);
+    console.log('🆔 Appointment ID:', appointment.id);
+    
+    if (!this.companyId || !appointment.id) {
+      console.error('❌ Missing company ID or appointment ID');
+      alert('שגיאה: חסר מזהה עסק או תור');
+      return;
+    }
+
+    const confirmed = confirm(`סמן תור כהושלם עבור ${appointment.customerName || 'לקוח'}?`);
+    if (!confirmed) {
+      console.log('⚠️ User cancelled the completion');
+      return;
+    }
+
+    console.log('📤 Updating appointment status to completed...');
+    
+    this.appointmentService.updateAppointmentStatus(
+      this.companyId,
+      appointment.id,
+      'completed'
+    ).then(() => {
+      console.log('✅ Appointment completed successfully:', appointment.id);
+      // רענון הנתונים
+      this.loadAppointments();
+    }).catch((error) => {
+      console.error('❌ Error completing appointment:', error);
+      alert('שגיאה בסימון התור כהושלם: ' + (error as Error).message);
+    });
+  }
 }

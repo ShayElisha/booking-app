@@ -178,21 +178,47 @@ export class AppointmentService {
       appointmentId
     );
     try {
-      // Convert date to string if it's a Date or Timestamp
-      const dataToUpdate = {
-        ...data,
-        date:
+      // Convert date to string if it's a Date or Timestamp (only if date exists in data)
+      const dataToUpdate: any = { ...data };
+      
+      if (data.date !== undefined) {
+        dataToUpdate.date =
           data.date instanceof Date
             ? data.date.toISOString().split('T')[0]
             : data.date instanceof Timestamp
             ? data.date.toDate().toISOString().split('T')[0]
-            : data.date,
-      };
+            : data.date;
+      }
+      
       await updateDoc(appointmentRef, dataToUpdate);
       this.toastr.success('התור עודכן בהצלחה!', 'הצלחה');
     } catch (error) {
       this.toastr.error(
         'שגיאה בעדכון התור: ' + (error as Error).message,
+        'שגיאה'
+      );
+      throw error;
+    }
+  }
+
+  // Update: עדכון סטטוס תור
+  async updateAppointmentStatus(
+    companyId: string,
+    appointmentId: string,
+    status: string
+  ): Promise<void> {
+    const appointmentRef = doc(
+      this.firestore,
+      `businesses/${companyId}/appointments`,
+      appointmentId
+    );
+    try {
+      await updateDoc(appointmentRef, { status });
+      const statusText = status === 'confirmed' ? 'אושר' : status === 'cancelled' ? 'בוטל' : 'עודכן';
+      this.toastr.success(`התור ${statusText} בהצלחה!`, 'הצלחה');
+    } catch (error) {
+      this.toastr.error(
+        'שגיאה בעדכון סטטוס התור: ' + (error as Error).message,
         'שגיאה'
       );
       throw error;

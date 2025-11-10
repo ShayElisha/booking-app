@@ -14,7 +14,9 @@ import {
   getDoc,
   collection,
   getDocs,
+  updateDoc,
 } from '@angular/fire/firestore';
+import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
 import { ToastrService } from 'ngx-toastr';
 import { ServicesService } from '../../services/service.service';
 import { EmployeeService } from '../../services/employee.service';
@@ -64,11 +66,15 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   showServiceModal = false;
   showBookingModal = false;
   showEmployeeModal = false;
+  showDescriptionModal = false;
   bookingStep = 1;
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
   bookingNotes: string = '';
   serviceFormStep = 1;
+  editingServiceId: string | null = null;
+  editingEmployeeId: string | null = null;
+  businessDescription: string = '';
 
   newService: Service = {
     name: '',
@@ -95,6 +101,24 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   selectedEmployee: Employee | null = null;
   today = new Date(new Date().setHours(0, 0, 0, 0));
 
+  // Image upload properties
+  serviceImagePreview: string | null = null;
+  selectedServiceFile: File | null = null;
+  employeeImagePreview: string | null = null;
+  selectedEmployeeFile: File | null = null;
+
+  // Employee hours properties
+  weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  employeeHours: { [key: string]: { from: string; to: string } } = {
+    'ראשון': { from: '', to: '' },
+    'שני': { from: '', to: '' },
+    'שלישי': { from: '', to: '' },
+    'רביעי': { from: '', to: '' },
+    'חמישי': { from: '', to: '' },
+    'שישי': { from: '', to: '' },
+    'שבת': { from: '', to: '' },
+  };
+
   // Calendar properties
   viewDate: Date = new Date();
   events: CalendarEvent[] = [];
@@ -104,6 +128,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private auth: Auth,
     private firestore: Firestore,
+    private storage: Storage,
     private toastr: ToastrService,
     private servicesService: ServicesService,
     private employeeService: EmployeeService,
@@ -174,7 +199,10 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
           this.userRole = 'customer';
         }
 
-        console.log('Loading business data for companyId:', this.companyId);
+        console.log('📍 Loading business data for companyId:', this.companyId);
+        console.log('👤 User UID:', user?.uid);
+        console.log('🎭 User role:', this.userRole);
+        
         await this.loadBusinessData(user?.uid, this.companyId!);
         if (!this.error) {
           this.isOwner = this.userRole === 'owner';
@@ -212,37 +240,29 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
 
   async loadBusinessData(uid: string | undefined, companyId: string) {
     try {
-      const cachedData = localStorage.getItem('business');
-      if (cachedData) {
-        const businessData = JSON.parse(cachedData);
-        if (businessData.companyId === companyId) {
-          this.businessName = businessData.businessName || 'ללא שם עסק';
-          this.logoUrl = businessData.logoUrl || this.fallbackImage;
-          this.isOwner = uid ? businessData.ownerUid === uid : false;
-          this.business = businessData as AppBusiness;
-          this.cdr.markForCheck();
-          return;
-        }
-      }
-
+      console.log('🔄 loadBusinessData called');
+      console.log('   UID:', uid);
+      console.log('   CompanyId:', companyId);
+      
+      // Skip cache - always load fresh from Firestore
       const businessRef = doc(this.firestore, 'businesses', companyId);
       const businessSnap = await getDoc(businessRef);
 
       if (businessSnap.exists()) {
         const business = businessSnap.data() as AppBusiness;
+        console.log('📊 Business data:', business);
+        console.log('🖼️ Logo URL from database:', business.logoUrl);
+        
         this.businessName = business.businessName || 'ללא שם עסק';
-        this.logoUrl = business.logoUrl || this.fallbackImage;
+        this.logoUrl = business.logoUrl || '';
         this.isOwner = uid ? business.ownerUid === uid : false;
         this.business = business;
-        localStorage.setItem(
-          'business',
-          JSON.stringify({
-            ...business,
-            ownerUid: uid,
-            companyId: companyId,
-            logoUrl: this.logoUrl,
-          })
-        );
+        
+        console.log('✅ Set logoUrl to:', this.logoUrl);
+        console.log('✅ Is owner:', this.isOwner);
+        
+        // Force change detection
+        this.cdr.detectChanges();
       } else {
         this.error = 'העסק לא נמצא.';
         this.toastr.error(this.error);
@@ -251,7 +271,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       console.error('Error loading business data:', err);
       this.error = 'שגיאה בטעינת פרטי העסק.';
       this.toastr.error(this.error);
-      this.logoUrl = this.fallbackImage;
+      this.logoUrl = '';
     } finally {
       this.cdr.markForCheck();
     }
@@ -354,6 +374,12 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     if (this.userRole !== 'owner') {
       return;
     }
+    
+    // איפוס תמונה ומצב עריכה
+    this.serviceImagePreview = null;
+    this.selectedServiceFile = null;
+    this.editingServiceId = null;
+    
     this.newService = {
       name: '',
       description: '',
@@ -387,6 +413,23 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     if (this.userRole !== 'owner') {
       return;
     }
+    
+    // איפוס תמונה ומצב עריכה
+    this.employeeImagePreview = null;
+    this.selectedEmployeeFile = null;
+    this.editingEmployeeId = null;
+    
+    // איפוס שעות עבודה
+    this.employeeHours = {
+      'ראשון': { from: '', to: '' },
+      'שני': { from: '', to: '' },
+      'שלישי': { from: '', to: '' },
+      'רביעי': { from: '', to: '' },
+      'חמישי': { from: '', to: '' },
+      'שישי': { from: '', to: '' },
+      'שבת': { from: '', to: '' },
+    };
+    
     this.newEmployee = {
       id: '',
       name: '',
@@ -396,6 +439,42 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       services: [],
     };
     this.showEmployeeModal = true;
+    this.cdr.markForCheck();
+  }
+
+  editEmployee(employee: Employee) {
+    if (!this.companyId) {
+      this.toastr.error('לא נמצא מזהה חברה.');
+      return;
+    }
+    
+    // טעינת הנתונים הקיימים
+    this.editingEmployeeId = employee.id || null;
+    this.newEmployee = { ...employee };
+    this.employeeImagePreview = employee.imageUrl || null;
+    this.selectedEmployeeFile = null;
+    
+    // טעינת שעות עבודה
+    this.employeeHours = {
+      'ראשון': { from: '', to: '' },
+      'שני': { from: '', to: '' },
+      'שלישי': { from: '', to: '' },
+      'רביעי': { from: '', to: '' },
+      'חמישי': { from: '', to: '' },
+      'שישי': { from: '', to: '' },
+      'שבת': { from: '', to: '' },
+    };
+    
+    if (employee.openingHours && employee.openingHours.length > 0) {
+      employee.openingHours.forEach(hour => {
+        if (this.employeeHours[hour.day]) {
+          this.employeeHours[hour.day] = { from: hour.from, to: hour.to };
+        }
+      });
+    }
+    
+    this.showEmployeeModal = true;
+    document.body.classList.add('modal-open');
     this.cdr.markForCheck();
   }
 
@@ -453,10 +532,27 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       this.toastr.warning('לא ניתן לבחור תאריך בעבר.');
       return;
     }
-    this.selectedDate = date;
+    
+    // שמירת התאריך ללא שינוי timezone
+    // יצירת תאריך חדש באזור הזמן המקומי
+    const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    this.selectedDate = localDate;
+    
+    console.log('📅 Date selected:', date);
+    console.log('📅 Local date saved:', localDate);
+    console.log('📅 Will be saved as:', this.formatDateForStorage(localDate));
+    
     this.calculateAvailableTimes(date);
     this.bookingStep = 3;
     this.cdr.markForCheck();
+  }
+  
+  private formatDateForStorage(date: Date): string {
+    // פורמט YYYY-MM-DD ללא המרת timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   selectTime(time: string) {
@@ -517,6 +613,12 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const dateForStorage = this.formatDateForStorage(this.selectedDate);
+    
+    console.log('📅 Selected Date Object:', this.selectedDate);
+    console.log('📅 Date for storage:', dateForStorage);
+    console.log('⏰ Selected Time:', this.selectedTime);
+
     const appointment: Appointment = {
       companyId: this.companyId,
       serviceId: this.selectedService.id!,
@@ -525,7 +627,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       employeeName: this.selectedEmployee?.name ?? '',
       customerId: this.auth.currentUser.uid,
       customerName: this.auth.currentUser.displayName || '',
-      date: this.selectedDate.toISOString().split('T')[0],
+      date: dateForStorage,
       time: this.selectedTime,
       duration:
         this.selectedService.duration ||
@@ -537,7 +639,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     };
 
     try {
-      console.log('Confirming booking with appointment:', appointment);
+      console.log('✅ Confirming booking with appointment:', appointment);
       const existingAppointments = await firstValueFrom(
         this.appointmentService.getAppointmentsByDate(
           this.companyId,
@@ -589,8 +691,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
 
   calculateAvailableTimes(date: Date) {
     this.availableTimes = [];
-    if (!this.business?.openingHours) return;
-
+    
     const dayOfWeek = [
       'ראשון',
       'שני',
@@ -600,11 +701,28 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       'שישי',
       'שבת',
     ][date.getDay()];
-    const hours = this.business.openingHours.find((h) => h.day === dayOfWeek);
-    if (!hours) return;
+    
+    let hours;
+    
+    // אם יש עובד נבחר ויש לו שעות עבודה משלו, השתמש בהן
+    if (this.selectedEmployee?.openingHours && this.selectedEmployee.openingHours.length > 0) {
+      hours = this.selectedEmployee.openingHours.find((h) => h.day === dayOfWeek);
+      console.log(`👤 Using employee ${this.selectedEmployee.name} working hours:`, hours);
+    }
+    
+    // אחרת, השתמש בשעות העסק
+    if (!hours && this.business?.openingHours) {
+      hours = this.business.openingHours.find((h) => h.day === dayOfWeek);
+      console.log('🏢 Using business working hours:', hours);
+    }
+    
+    if (!hours) {
+      console.log('❌ No working hours found for', dayOfWeek);
+      return;
+    }
 
     const interval =
-      this.selectedService?.duration || this.business.appointmentInterval || 30;
+      this.selectedService?.duration || this.business?.appointmentInterval || 30;
     let currentTime = new Date(`1970-01-01T${hours.from}:00`);
     const endTime = new Date(`1970-01-01T${hours.to}:00`);
 
@@ -627,19 +745,41 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       currentTime.setMinutes(currentTime.getMinutes() + interval);
     }
 
+    const dateForQuery = this.formatDateForStorage(date);
+    console.log('🔍 Querying appointments for date:', dateForQuery);
+    
     this.appointmentService
-      .getAppointmentsByDate(this.companyId!, date.toISOString().split('T')[0])
+      .getAppointmentsByDate(this.companyId!, dateForQuery)
       .subscribe({
         next: (appointments) => {
-          this.availableTimes = this.availableTimes.filter(
-            (time) =>
-              !appointments.some(
-                (appt) =>
-                  appt.time === time &&
-                  (!this.selectedService?.requiresEmployee ||
-                    appt.employeeId === this.selectedEmployee?.id)
-              )
-          );
+          console.log('📅 All appointments for date:', appointments);
+          console.log('👤 Selected employee:', this.selectedEmployee);
+          
+          // סינון תורים - תמיד לפי העובד הנבחר
+          const selectedEmployeeId = this.selectedEmployee?.id;
+          const selectedEmployeeName = this.selectedEmployee?.name || 'Unknown';
+          
+          this.availableTimes = this.availableTimes.filter((time) => {
+            // אם יש עובד נבחר, בדוק רק תורים של אותו עובד
+            if (selectedEmployeeId) {
+              const isEmployeeBusy = appointments.some(
+                (appt) => 
+                  appt.time === time && 
+                  appt.employeeId === selectedEmployeeId
+              );
+              
+              console.log(`⏰ Time ${time} - Employee ${selectedEmployeeName} - Busy: ${isEmployeeBusy}`);
+              return !isEmployeeBusy;
+            }
+            
+            // אם אין עובד נבחר, בדוק אם השעה תפוסה בכלל
+            // (למקרה של שירות שלא דורש עובד ספציפי)
+            const isTimeBusy = appointments.some((appt) => appt.time === time);
+            console.log(`⏰ Time ${time} - Any employee - Busy: ${isTimeBusy}`);
+            return !isTimeBusy;
+          });
+          
+          console.log('✅ Available times after filtering:', this.availableTimes);
           this.cdr.markForCheck();
         },
         error: (err) => {
@@ -734,40 +874,79 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       .split(',')
       .map((tag) => tag.trim())
       .filter((tag) => tag);
-    this.newService.createdAt = new Date().toISOString();
     this.newService.updatedAt = new Date().toISOString();
 
     try {
-      const serviceId = await this.servicesService.addService(this.newService);
-      if (this.newService.requiresEmployee) {
-        const selectedEmployees = this.employees.filter((emp) => emp.selected);
-        for (const employee of selectedEmployees) {
-          if (!employee.id) {
-            this.toastr.error(`לא נמצא מזהה לעובד ${employee.name}`);
-            continue;
-          }
-          const updatedServices = [...(employee.services || []), serviceId];
-          await this.employeeService.updateEmployee(
-            this.companyId,
-            employee.id,
-            {
-              services: updatedServices,
-            }
-          );
+      // העלאת תמונה אם נבחרה
+      if (this.selectedServiceFile) {
+        const imageUrl = await this.uploadServiceImage(this.selectedServiceFile);
+        if (imageUrl) {
+          this.newService.imageUrl = imageUrl;
         }
       }
-      console.log('Toastr success triggered for new service');
-      this.toastr.success('שירות נוסף בהצלחה!');
+      
+      // עדכון או הוספה
+      if (this.editingServiceId) {
+        // מצב עריכה
+        await this.servicesService.updateService(
+          this.companyId,
+          this.editingServiceId,
+          this.newService
+        );
+        console.log('Toastr success triggered for service update');
+        this.toastr.success('השירות עודכן בהצלחה!');
+      } else {
+        // מצב הוספה
+        this.newService.createdAt = new Date().toISOString();
+        const serviceId = await this.servicesService.addService(this.newService);
+        
+        if (this.newService.requiresEmployee) {
+          const selectedEmployees = this.employees.filter((emp) => emp.selected);
+          for (const employee of selectedEmployees) {
+            if (!employee.id) {
+              this.toastr.error(`לא נמצא מזהה לעובד ${employee.name}`);
+              continue;
+            }
+            const updatedServices = [...(employee.services || []), serviceId];
+            await this.employeeService.updateEmployee(
+              this.companyId,
+              employee.id,
+              { services: updatedServices }
+            );
+          }
+        }
+        console.log('Toastr success triggered for new service');
+        this.toastr.success('שירות נוסף בהצלחה!');
+      }
+      
       this.closeServiceModal();
       if (this.companyId) {
-        await this.loadServices(this.companyId); // Reload services
+        await this.loadServices(this.companyId);
       }
     } catch (err) {
-      console.error('Error adding service:', err);
-      this.toastr.error('שגיאה בהוספת שירות: ' + (err as Error).message);
+      console.error('Error saving service:', err);
+      this.toastr.error('שגיאה בשמירת שירות: ' + (err as Error).message);
     } finally {
       this.cdr.markForCheck();
     }
+  }
+
+  editService(service: Service) {
+    if (!this.companyId) {
+      this.toastr.error('לא נמצא מזהה חברה.');
+      return;
+    }
+    
+    // טעינת הנתונים הקיימים
+    this.editingServiceId = service.id || null;
+    this.newService = { ...service };
+    this.tagsInput = service.tags?.join(', ') || '';
+    this.serviceImagePreview = service.imageUrl || null;
+    this.selectedServiceFile = null;
+    this.serviceFormStep = 1;
+    this.showServiceModal = true;
+    document.body.classList.add('modal-open');
+    this.cdr.markForCheck();
   }
 
   async addNewEmployee() {
@@ -776,16 +955,123 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       return;
     }
     try {
-      await this.employeeService.addEmployee(this.newEmployee);
-      console.log('Toastr success triggered for new employee');
-      this.toastr.success('עובד נוסף בהצלחה!');
+      // המרת שעות העבודה לפורמט הנכון
+      const openingHours: { day: string; from: string; to: string }[] = [];
+      
+      for (const day of this.weekDays) {
+        const hours = this.employeeHours[day];
+        if (hours && hours.from && hours.to) {
+          openingHours.push({
+            day: day,
+            from: hours.from,
+            to: hours.to
+          });
+        }
+      }
+      
+      // הוספת שעות העבודה לעובד
+      if (openingHours.length > 0) {
+        this.newEmployee.openingHours = openingHours;
+        console.log('👤 Employee working hours:', openingHours);
+      }
+      
+      // העלאת תמונה אם נבחרה
+      if (this.selectedEmployeeFile) {
+        const imageUrl = await this.uploadEmployeeImage(this.selectedEmployeeFile);
+        if (imageUrl) {
+          this.newEmployee.imageUrl = imageUrl;
+        }
+      }
+      
+      // עדכון או הוספה
+      if (this.editingEmployeeId) {
+        // מצב עריכה
+        await this.employeeService.updateEmployee(
+          this.companyId!,
+          this.editingEmployeeId,
+          this.newEmployee
+        );
+        console.log('Toastr success triggered for employee update');
+        this.toastr.success('העובד עודכן בהצלחה!');
+      } else {
+        // מצב הוספה
+        await this.employeeService.addEmployee(this.newEmployee);
+        console.log('Toastr success triggered for new employee');
+        this.toastr.success('עובד נוסף בהצלחה!');
+      }
+      
       this.closeEmployeeModal();
       if (this.companyId) {
         await this.loadEmployees(this.companyId);
       }
     } catch (err) {
-      console.error('Error adding employee:', err);
-      this.toastr.error('שגיאה בהוספת עובד: ' + (err as Error).message);
+      console.error('Error saving employee:', err);
+      this.toastr.error('שגיאה בשמירת עובד: ' + (err as Error).message);
+    } finally {
+      this.cdr.markForCheck();
+    }
+  }
+
+  async deleteEmployee(employee: Employee) {
+    if (!this.companyId || !employee.id) {
+      this.toastr.error('חסר מזהה עסק או עובד.');
+      return;
+    }
+    if (confirm(`האם אתה בטוח שברצונך למחוק את העובד "${employee.name}"?`)) {
+      try {
+        await this.employeeService.deleteEmployee(this.companyId, employee.id);
+        this.employees = this.employees.filter((e) => e.id !== employee.id);
+        console.log('Toastr success triggered for employee deletion');
+        this.toastr.success('העובד נמחק בהצלחה!');
+        this.cdr.markForCheck();
+      } catch (err) {
+        console.error('Error deleting employee:', err);
+        this.toastr.error('שגיאה במחיקת העובד: ' + (err as Error).message);
+      }
+    }
+  }
+
+  openDescriptionModal() {
+    if (!this.isOwner) {
+      return;
+    }
+    this.businessDescription = this.business?.description || 'ברוכים הבאים! כאן תמצאו את השירותים המובילים שלנו, הכירו את הצוות המקצועי שלנו וקראו מה לקוחות מרוצים חושבים עלינו.';
+    this.showDescriptionModal = true;
+    document.body.classList.add('modal-open');
+    this.cdr.markForCheck();
+  }
+
+  closeDescriptionModal() {
+    this.showDescriptionModal = false;
+    this.businessDescription = '';
+    document.body.classList.remove('modal-open');
+    this.cdr.markForCheck();
+  }
+
+  async saveDescription() {
+    if (!this.companyId || !this.businessDescription.trim()) {
+      this.toastr.error('נא להזין תיאור.');
+      return;
+    }
+
+    try {
+      // עדכון בדאטהבייס
+      const businessRef = doc(this.firestore, 'businesses', this.companyId);
+      await updateDoc(businessRef, {
+        description: this.businessDescription.trim()
+      });
+
+      // עדכון מקומי
+      if (this.business) {
+        this.business.description = this.businessDescription.trim();
+      }
+
+      console.log('Toastr success triggered for description update');
+      this.toastr.success('התיאור עודכן בהצלחה!');
+      this.closeDescriptionModal();
+    } catch (err) {
+      console.error('Error updating description:', err);
+      this.toastr.error('שגיאה בעדכון התיאור: ' + (err as Error).message);
     } finally {
       this.cdr.markForCheck();
     }
@@ -803,5 +1089,79 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
     this.selectedDate = null;
     this.availableTimes = [];
     this.cdr.markForCheck();
+  }
+
+  async uploadServiceImage(file: File): Promise<string | null> {
+    try {
+      const filePath = `services/${this.companyId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(this.storage, filePath);
+      
+      console.log('📤 Uploading service image to:', filePath);
+      await uploadBytes(storageRef, file);
+      
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log('✅ Service image uploaded:', downloadURL);
+      return downloadURL;
+    } catch (error) {
+      console.error('❌ Error uploading service image:', error);
+      this.toastr.error('שגיאה בהעלאת תמונת השירות');
+      return null;
+    }
+  }
+
+  async uploadEmployeeImage(file: File): Promise<string | null> {
+    try {
+      const filePath = `employees/${this.companyId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(this.storage, filePath);
+      
+      console.log('📤 Uploading employee image to:', filePath);
+      await uploadBytes(storageRef, file);
+      
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log('✅ Employee image uploaded:', downloadURL);
+      return downloadURL;
+    } catch (error) {
+      console.error('❌ Error uploading employee image:', error);
+      this.toastr.error('שגיאה בהעלאת תמונת העובד');
+      return null;
+    }
+  }
+
+  onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.fallbackImage) {
+      img.src = this.fallbackImage;
+      img.onerror = null; // Prevent infinite loop
+    }
+  }
+
+  onServiceImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedServiceFile = input.files[0];
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        this.serviceImagePreview = e.target?.result as string;
+        this.cdr.markForCheck();
+      };
+      reader.readAsDataURL(this.selectedServiceFile);
+    }
+  }
+
+  onEmployeeImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedEmployeeFile = input.files[0];
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        this.employeeImagePreview = e.target?.result as string;
+        this.cdr.markForCheck();
+      };
+      reader.readAsDataURL(this.selectedEmployeeFile);
+    }
   }
 }

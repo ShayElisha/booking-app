@@ -29,6 +29,7 @@
     color: #5f4bb6;
     letter-spacing: 1px;
     background: linear-gradient(90deg, #6d9fff 0%, #5f4bb6 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     line-height: 1;
@@ -36,22 +37,29 @@
 
   nav {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
 
     a {
-      font-size: 1.15rem;
+      font-size: 1rem;
       font-weight: 500;
       color: #6b6b85;
       text-decoration: none;
-      padding: 0.2rem 0.6rem;
+      padding: 0.5rem 1rem;
       border-radius: 12px;
-      transition: background 0.18s ease-in-out, color 0.18s ease-in-out;
+      transition: all 0.3s ease;
+      position: relative;
 
-      &.active,
       &:hover {
         background: #f1f3fb;
         color: #5f4bb6;
+        transform: translateY(-2px);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, #5f4bb6 0%, #6d9fff 100%);
+        color: #fff;
         font-weight: 600;
+        box-shadow: 0 4px 12px rgba(95, 75, 182, 0.25);
       }
     }
 
@@ -71,6 +79,15 @@
       font-size: 1rem;
       color: #6b6b85;
       font-weight: 500;
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: #5f4bb6;
+      background: rgba(95, 75, 182, 0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      font-weight: 600;
     }
 
     .login-btn,

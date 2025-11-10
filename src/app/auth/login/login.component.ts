@@ -3,8 +3,6 @@ import { FormBuilder, Validators } from '@angular/forms';
 import {
   Auth,
   signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
 } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -62,23 +60,6 @@ export class LoginComponent {
     this.loading = false;
   }
 
-  async loginWithGoogle() {
-    this.loading = true;
-    this.error = '';
-    try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(this.auth, provider);
-      const user = userCredential.user;
-      const token = await this.generateUserToken(user);
-      localStorage.setItem('userToken', token);
-      this.toastr.success('התחברת בהצלחה עם Google!');
-      await this.redirectUser(user.uid);
-    } catch (err: any) {
-      this.error = this.firebaseErrorMsg(err.code);
-      this.toastr.error(this.error);
-    }
-    this.loading = false;
-  }
 
   async generateUserToken(user: any): Promise<string> {
     const userDoc = await getDoc(doc(this.firestore, 'users', user.uid));
@@ -97,33 +78,56 @@ export class LoginComponent {
   }
 
   async redirectUser(uid: string) {
-    console.log('UID:', uid);
-    const userDoc = await getDoc(doc(this.firestore, 'users', uid));
-    console.log('Doc exists:', userDoc.exists());
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      console.log('User data:', userData, 'Role:', userData['role']);
-      const role = userData['role'];
-      const companyId = userData['companyId'] || 'default';
-      switch (role) {
-        case 'admin':
-          console.log('Navigating to admin-panel');
-          this.router.navigate(['/admin-panel']);
-          break;
-        case 'business':
-          console.log('Navigating to business-panel');
-          this.router.navigate([`/business-panel`]);
-          break;
-        case 'customer':
-          console.log('Navigating to search');
-          this.router.navigate([`/search`]);
-          break;
-        default:
-          console.log('Navigating to default');
-          this.router.navigate(['/']);
+    console.log('🔍 redirectUser called with UID:', uid);
+    
+    try {
+      const userDoc = await getDoc(doc(this.firestore, 'users', uid));
+      console.log('📄 User document exists:', userDoc.exists());
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log('👤 User data:', userData);
+        console.log('🎭 User role:', userData['role']);
+        
+        const role = userData['role'];
+        const companyId = userData['companyId'];
+        
+        console.log('📋 Redirect info:', { role, companyId });
+        
+        switch (role) {
+          case 'admin':
+            console.log('➡️ Navigating to admin-panel');
+            this.router.navigate(['/admin-panel']);
+            break;
+          case 'business':
+            console.log('➡️ Navigating to business-panel');
+            // Save business info to localStorage for business panel
+            if (companyId) {
+              localStorage.setItem('business', JSON.stringify({
+                uid: uid,
+                companyId: companyId,
+                role: 'business',
+                ...userData
+              }));
+            }
+            this.router.navigate(['/business-panel']);
+            break;
+          case 'customer':
+            console.log('➡️ Navigating to customer profile');
+            this.router.navigate(['/cus']);
+            break;
+          default:
+            console.log('⚠️ Unknown role, navigating to home');
+            this.router.navigate(['/']);
+        }
+      } else {
+        console.error('❌ User document does not exist in Firestore!');
+        this.toastr.error('לא נמצא תפקיד עבור המשתמש.');
+        this.router.navigate(['/']);
       }
-    } else {
-      this.toastr.error('לא נמצא תפקיד עבור המשתמש.');
+    } catch (error) {
+      console.error('❌ Error in redirectUser:', error);
+      this.toastr.error('שגיאה בטעינת נתוני משתמש.');
       this.router.navigate(['/']);
     }
   }

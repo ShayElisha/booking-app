@@ -2,14 +2,17 @@
   <div class="container">
     <div class="logo">QueuePoint</div>
     <nav>
-      <a routerLink="/" routerLinkActive="active">דף הבית</a>
-      <a routerLink="/about" routerLinkActive="active">אודות</a>
-      <a routerLink="/services" routerLinkActive="active">שירותים</a>
-      <a routerLink="/contact" routerLinkActive="active">צור קשר</a>
+      <a *ngFor="let link of navLinks" 
+         [routerLink]="link.path" 
+         routerLinkActive="active" 
+         [routerLinkActiveOptions]="{exact: link.path === '/'}">
+        {{ link.label }}
+      </a>
     </nav>
     <div class="user-section">
       <ng-container *ngIf="user; else notLoggedIn">
         <span class="greeting">שלום, {{ fullName }}</span>
+        <span class="user-role" *ngIf="userTypeLabel">({{ userTypeLabel }})</span>
         <button (click)="logout()" class="logout-btn">התנתק</button>
       </ng-container>
       <ng-template #notLoggedIn>
