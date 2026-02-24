@@ -7,7 +7,17 @@
   <!-- כותרת ראשית -->
   <div class="hero">
     <div class="hero-content">
-      <h1 *ngIf="!error">👋 שלום, הגעתם לעסק {{ businessName }}</h1>
+      <div class="business-name-header">
+        <h1 *ngIf="!error">👋 שלום, הגעתם לעסק {{ businessName }}</h1>
+        <button 
+          *ngIf="isOwner" 
+          class="edit-business-btn" 
+          (click)="openEditBusinessModal()"
+          title="ערוך פרטי עסק"
+        >
+          ✏️ ערוך פרטים
+        </button>
+      </div>
       <div class="description-section">
         <p>{{ business?.description || 'ברוכים הבאים! כאן תמצאו את השירותים המובילים שלנו, הכירו את הצוות המקצועי שלנו וקראו מה לקוחות מרוצים חושבים עלינו.' }}</p>
         <button 
@@ -596,6 +606,116 @@
           [disabled]="!businessDescription || businessDescription.trim().length === 0"
         >
           💾 שמור תיאור
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- מודל לעריכת פרטי העסק -->
+  <div
+    class="modal edit-business-modal"
+    [class.active]="showEditBusinessModal"
+    (click)="closeEditBusinessModal()"
+  >
+    <div
+      class="modal-content"
+      [class.active]="showEditBusinessModal"
+      (click)="$event.stopPropagation()"
+    >
+      <button class="close-modal-btn" (click)="closeEditBusinessModal()">✕</button>
+      <h3>🏢 ערוך פרטי עסק</h3>
+      
+      <!-- Logo Upload -->
+      <div class="form-group">
+        <label>לוגו העסק</label>
+        <div class="image-upload-section">
+          <div class="image-preview" *ngIf="logoImagePreview">
+            <img [src]="logoImagePreview" alt="לוגו" />
+          </div>
+          <input
+            #logoFileInput
+            type="file"
+            accept="image/*"
+            (change)="onLogoFileSelected($event)"
+            style="display: none;"
+          />
+          <button class="upload-btn" (click)="logoFileInput.click()">
+            📷 העלה לוגו
+          </button>
+        </div>
+      </div>
+
+      <!-- Business Name -->
+      <div class="form-group">
+        <label>שם העסק *</label>
+        <input
+          type="text"
+          [(ngModel)]="editBusinessForm.businessName"
+          placeholder="שם העסק"
+          required
+        />
+      </div>
+
+      <!-- Address -->
+      <div class="form-group">
+        <label>כתובת *</label>
+        <input
+          type="text"
+          [(ngModel)]="editBusinessForm.address"
+          placeholder="רחוב, עיר"
+          required
+        />
+      </div>
+
+      <!-- Phone -->
+      <div class="form-group">
+        <label>טלפון *</label>
+        <input
+          type="tel"
+          [(ngModel)]="editBusinessForm.phoneNumber"
+          placeholder="050-1234567"
+          required
+        />
+      </div>
+
+      <!-- Appointment Interval -->
+      <div class="form-group">
+        <label>מרווח תורים (דקות)</label>
+        <input
+          type="number"
+          [(ngModel)]="editBusinessForm.appointmentInterval"
+          min="15"
+          step="15"
+        />
+      </div>
+
+      <!-- Opening Hours -->
+      <div class="form-group">
+        <label>שעות פתיחה</label>
+        <div class="opening-hours-list">
+          <div class="opening-hour-item" *ngFor="let hour of editBusinessForm.openingHours; let i = index">
+            <select [(ngModel)]="hour.day">
+              <option value="ראשון">ראשון</option>
+              <option value="שני">שני</option>
+              <option value="שלישי">שלישי</option>
+              <option value="רביעי">רביעי</option>
+              <option value="חמישי">חמישי</option>
+              <option value="שישי">שישי</option>
+              <option value="שבת">שבת</option>
+            </select>
+            <input type="time" [(ngModel)]="hour.from" />
+            <span>עד</span>
+            <input type="time" [(ngModel)]="hour.to" />
+            <button class="remove-hour-btn" (click)="removeOpeningHour(i)">🗑️</button>
+          </div>
+          <button class="add-hour-btn" (click)="addOpeningHour()">➕ הוסף יום</button>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="closeEditBusinessModal()">❌ בטל</button>
+        <button class="save-btn" (click)="saveBusinessDetails()">
+          💾 שמור שינויים
         </button>
       </div>
     </div>

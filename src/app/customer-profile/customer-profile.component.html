@@ -2,9 +2,16 @@
   <!-- Hero Section -->
   <div class="hero">
     <div class="hero-content">
-      <h1 *ngIf="userData">{{ greeting }}, {{ userData.fullName }}! 👋</h1>
-      <h1 *ngIf="!userData">{{ greeting }}! 👋</h1>
-      <p>ניהול התורים שלך במקום אחד - פשוט, מהיר ונוח</p>
+      <div class="user-header">
+        <div>
+          <h1 *ngIf="userData">{{ greeting }}, {{ userData.fullName }}! 👋</h1>
+          <h1 *ngIf="!userData">{{ greeting }}! 👋</h1>
+          <p>ניהול התורים שלך במקום אחד - פשוט, מהיר ונוח</p>
+        </div>
+        <button class="edit-profile-btn" (click)="openEditProfileModal()" *ngIf="userData">
+          ✏️ ערוך פרופיל
+        </button>
+      </div>
     </div>
     <div class="hero-image">
       <div class="avatar-circle">
@@ -260,6 +267,73 @@
           [disabled]="!reviewRating || !reviewComment"
         >
           💾 שלח ביקורת
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div 
+    class="modal edit-profile-modal"
+    [class.active]="showEditProfileModal"
+    (click)="closeEditProfileModal()"
+  >
+    <div 
+      class="modal-content"
+      [class.active]="showEditProfileModal"
+      (click)="$event.stopPropagation()"
+    >
+      <button class="close-modal-btn" (click)="closeEditProfileModal()">✕</button>
+      <h3>👤 ערוך פרופיל</h3>
+
+      <!-- Profile Image Upload -->
+      <div class="form-group">
+        <label>תמונת פרופיל</label>
+        <div class="image-upload-section">
+          <div class="image-preview" *ngIf="profileImagePreview">
+            <img [src]="profileImagePreview" alt="תמונת פרופיל" />
+          </div>
+          <div class="image-preview avatar-placeholder-large" *ngIf="!profileImagePreview">
+            👤
+          </div>
+          <input
+            #profileFileInput
+            type="file"
+            accept="image/*"
+            (change)="onProfileImageSelected($event)"
+            style="display: none;"
+          />
+          <button class="upload-btn" (click)="profileFileInput.click()">
+            📷 העלה תמונה
+          </button>
+        </div>
+      </div>
+
+      <!-- Full Name -->
+      <div class="form-group">
+        <label>שם מלא *</label>
+        <input
+          type="text"
+          [(ngModel)]="editProfileForm.fullName"
+          placeholder="שם מלא"
+          required
+        />
+      </div>
+
+      <!-- Phone Number -->
+      <div class="form-group">
+        <label>מספר טלפון</label>
+        <input
+          type="tel"
+          [(ngModel)]="editProfileForm.phoneNumber"
+          placeholder="050-1234567"
+        />
+      </div>
+
+      <div class="form-actions">
+        <button class="cancel-btn" (click)="closeEditProfileModal()">❌ בטל</button>
+        <button class="save-btn" (click)="saveProfileDetails()">
+          💾 שמור שינויים
         </button>
       </div>
     </div>

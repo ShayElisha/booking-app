@@ -71,6 +71,7 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   showEmployeeModal = false;
   showDescriptionModal = false;
   showAbsenceModal = false;
+  showEditBusinessModal = false;
   bookingStep = 1;
   selectedDate: Date | null = null;
   selectedTime: string | null = null;
@@ -122,6 +123,17 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
   selectedServiceFile: File | null = null;
   employeeImagePreview: string | null = null;
   selectedEmployeeFile: File | null = null;
+  logoImagePreview: string | null = null;
+  selectedLogoFile: File | null = null;
+
+  // Edit business properties
+  editBusinessForm = {
+    businessName: '',
+    address: '',
+    phoneNumber: '',
+    appointmentInterval: 30,
+    openingHours: [] as BusinessOpeningHour[]
+  };
 
   // Employee hours properties
   weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
@@ -1414,5 +1426,128 @@ export class BusinessProfileComponent implements OnInit, OnDestroy {
       rejected: 'נדחה',
     };
     return statuses[status] || status;
+  }
+
+  // ===============================
+  // Edit Business Profile Functions
+  // ===============================
+
+  openEditBusinessModal() {
+    if (!this.isOwner) {
+      this.toastr.error('רק בעל העסק יכול לערוך פרטים');
+      return;
+    }
+    
+    // Load current business data
+    this.editBusinessForm = {
+      businessName: this.business?.businessName || '',
+      address: this.business?.address || '',
+      phoneNumber: this.business?.phoneNumber || '',
+      appointmentInterval: this.business?.appointmentInterval || 30,
+      openingHours: this.business?.openingHours || []
+    };
+    
+    this.logoImagePreview = this.logoUrl || null;
+    this.selectedLogoFile = null;
+    this.showEditBusinessModal = true;
+    document.body.classList.add('modal-open');
+    this.cdr.detectChanges();
+  }
+
+  closeEditBusinessModal() {
+    this.showEditBusinessModal = false;
+    this.logoImagePreview = null;
+    this.selectedLogoFile = null;
+    document.body.classList.remove('modal-open');
+    this.cdr.markForCheck();
+  }
+
+  onLogoFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedLogoFile = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.logoImagePreview = e.target.result;
+        this.cdr.markForCheck();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async uploadBusinessLogo(): Promise<string | null> {
+    if (!this.selectedLogoFile) return null;
+    
+    try {
+      const timestamp = Date.now();
+      const fileName = `business_${this.companyId}_${timestamp}.jpg`;
+      const storageRef = ref(this.storage, `businesses/logos/${fileName}`);
+      await uploadBytes(storageRef, this.selectedLogoFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      this.toastr.error('שגיאה בהעלאת לוגו');
+      return null;
+    }
+  }
+
+  addOpeningHour() {
+    this.editBusinessForm.openingHours.push({ day: 'ראשון', from: '09:00', to: '17:00' });
+    this.cdr.markForCheck();
+  }
+
+  removeOpeningHour(index: number) {
+    this.editBusinessForm.openingHours.splice(index, 1);
+    this.cdr.markForCheck();
+  }
+
+  async saveBusinessDetails() {
+    if (!this.companyId) {
+      this.toastr.error('שגיאה: חסר מזהה עסק');
+      return;
+    }
+
+    if (!this.editBusinessForm.businessName || !this.editBusinessForm.address || !this.editBusinessForm.phoneNumber) {
+      this.toastr.error('אנא מלא את כל השדות הנדרשים');
+      return;
+    }
+
+    try {
+      const updateData: Partial<AppBusiness> = {
+        businessName: this.editBusinessForm.businessName,
+        address: this.editBusinessForm.address,
+        phoneNumber: this.editBusinessForm.phoneNumber,
+        appointmentInterval: this.editBusinessForm.appointmentInterval,
+        openingHours: this.editBusinessForm.openingHours
+      };
+
+      // Upload new logo if selected
+      if (this.selectedLogoFile) {
+        const logoUrl = await this.uploadBusinessLogo();
+        if (logoUrl) {
+          updateData.logoUrl = logoUrl;
+        }
+      }
+
+      const businessRef = doc(this.firestore, 'businesses', this.companyId);
+      await updateDoc(businessRef, updateData);
+
+      // Update local data
+      this.businessName = this.editBusinessForm.businessName;
+      if (updateData.logoUrl) {
+        this.logoUrl = updateData.logoUrl;
+      }
+      if (this.business) {
+        this.business = { ...this.business, ...updateData };
+      }
+
+      this.toastr.success('פרטי העסק עודכנו בהצלחה!');
+      this.closeEditBusinessModal();
+      this.cdr.markForCheck();
+    } catch (err) {
+      console.error('Error updating business:', err);
+      this.toastr.error('שגיאה בעדכון פרטי העסק: ' + (err as Error).message);
+    }
   }
 }

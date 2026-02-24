@@ -7,6 +7,8 @@ import { AppBusiness } from '../models/app-business';
 import { AppUser } from '../models/app-user';
 import { Router } from '@angular/router';
 import { onAuthStateChanged, User } from '@angular/fire/auth';
+import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
+import { ToastrService } from 'ngx-toastr';
 
 interface BusinessUsage {
   business: AppBusiness;
@@ -37,11 +39,22 @@ export class CustomerProfileComponent implements OnInit {
   reviewRating = 0;
   reviewComment = '';
 
+  // Edit profile modal
+  showEditProfileModal = false;
+  profileImagePreview: string | null = null;
+  selectedProfileFile: File | null = null;
+  editProfileForm = {
+    fullName: '',
+    phoneNumber: ''
+  };
+
   constructor(
     private appointmentService: AppointmentService,
     private businessService: BusinessService,
     private userService: UserService,
-    private router: Router
+    private router: Router,
+    private storage: Storage,
+    private toastr: ToastrService
   ) {}
 
   ngOnInit(): void {
@@ -338,6 +351,103 @@ export class CustomerProfileComponent implements OnInit {
     } catch (error) {
       console.error('Error submitting review:', error);
       alert('שגיאה בשליחת הביקורת');
+    }
+  }
+
+  // ===============================
+  // Edit Profile Functions
+  // ===============================
+
+  openEditProfileModal(): void {
+    if (!this.userData) {
+      this.toastr.error('אין נתוני משתמש');
+      return;
+    }
+
+    this.editProfileForm = {
+      fullName: this.userData.fullName || '',
+      phoneNumber: this.userData.phoneNumber || ''
+    };
+
+    this.profileImagePreview = this.userData.photoURL || null;
+    this.selectedProfileFile = null;
+    this.showEditProfileModal = true;
+    document.body.classList.add('modal-open');
+  }
+
+  closeEditProfileModal(): void {
+    this.showEditProfileModal = false;
+    this.profileImagePreview = null;
+    this.selectedProfileFile = null;
+    document.body.classList.remove('modal-open');
+  }
+
+  onProfileImageSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedProfileFile = file;
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.profileImagePreview = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async uploadProfileImage(): Promise<string | null> {
+    if (!this.selectedProfileFile || !this.customerId) return null;
+
+    try {
+      const timestamp = Date.now();
+      const fileName = `profile_${this.customerId}_${timestamp}.jpg`;
+      const storageRef = ref(this.storage, `users/profiles/${fileName}`);
+      await uploadBytes(storageRef, this.selectedProfileFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      this.toastr.error('שגיאה בהעלאת תמונה');
+      return null;
+    }
+  }
+
+  async saveProfileDetails(): Promise<void> {
+    if (!this.customerId) {
+      this.toastr.error('שגיאה: חסר מזהה משתמש');
+      return;
+    }
+
+    if (!this.editProfileForm.fullName) {
+      this.toastr.error('אנא מלא את השם המלא');
+      return;
+    }
+
+    try {
+      const updateData: Partial<AppUser> = {
+        fullName: this.editProfileForm.fullName,
+        phoneNumber: this.editProfileForm.phoneNumber
+      };
+
+      // Upload new profile image if selected
+      if (this.selectedProfileFile) {
+        const photoURL = await this.uploadProfileImage();
+        if (photoURL) {
+          updateData.photoURL = photoURL;
+        }
+      }
+
+      await this.userService.updateUser(this.customerId, updateData);
+
+      // Update local data
+      if (this.userData) {
+        this.userData = { ...this.userData, ...updateData };
+      }
+
+      this.toastr.success('הפרופיל עודכן בהצלחה!');
+      this.closeEditProfileModal();
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      this.toastr.error('שגיאה בעדכון הפרופיל: ' + (err as Error).message);
     }
   }
 }
